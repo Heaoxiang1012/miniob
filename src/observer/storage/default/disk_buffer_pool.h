@@ -78,7 +78,7 @@ public:
 
   void set_page_num(PageNum page_num)
   {
-    page_.page_num = page_num;
+    page_.page_num = page_num; //设置该frame 对应的页为page_num页
   }
 
   /**
@@ -90,7 +90,7 @@ public:
   }
 
   char *data() {
-    return page_.data;
+    return page_.data; //返回对应页面的数据值
   }
 
   int file_desc() const
@@ -104,16 +104,16 @@ public:
   }
   bool can_purge()
   {
-    return pin_count_ <= 0;
+    return pin_count_ <= 0; //若引用计数为0，则表示该frame可以删掉
   }
 private:
   friend class DiskBufferPool;
 
-  bool          dirty_     = false;
-  unsigned int  pin_count_ = 0;
-  unsigned long acc_time_  = 0;
+  bool          dirty_     = false; //是否是脏页，脏页需要写回磁盘
+  unsigned int  pin_count_ = 0; // 该页的引用计数
+  unsigned long acc_time_  = 0; 
   int           file_desc_ = -1;
-  Page          page_;
+  Page          page_; //对应磁盘上的页
 };
 
 class BPFrameManager : public common::MemPoolSimple<Frame>
@@ -121,15 +121,17 @@ class BPFrameManager : public common::MemPoolSimple<Frame>
 public:
   BPFrameManager(const char *tag);
 
-  Frame *get(int file_desc, PageNum page_num);
-
-  std::list<Frame *> find_list(int file_desc);
+  Frame *get(int file_desc, PageNum page_num);  //找到该文件的哪个页所在的frame
+ 
+  std::list<Frame *> find_list(int file_desc); //找到这个文件对应的所有frame
 
   /**
    * 如果不能从空闲链表中分配新的页面，就使用这个接口，
    * 尝试从pin count=0的页面中淘汰一个
    */
   Frame *begin_purge();
+
+  //实现LRU
 };
 
 class BufferPoolIterator
@@ -222,7 +224,7 @@ public:
    */
   RC flush_all_pages();
 
-protected:
+protected: //派生类可以访问，但是其他类不能访问
   RC allocate_frame(Frame **buf);
 
   /**
