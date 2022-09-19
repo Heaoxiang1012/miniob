@@ -113,6 +113,7 @@ class RecordFileHandler {
 public:
   RecordFileHandler() = default;
   RC init(DiskBufferPool *buffer_pool);
+  RC destroy();
   void close();
 
   /**
@@ -135,6 +136,8 @@ public:
    * 获取指定文件中标识符为rid的记录内容到rec指向的记录结构中
    */
   RC get_record(const RID *rid, Record *rec);
+
+
 
   template <class RecordUpdater>  // 改成普通模式, 不使用模板
   RC update_record_in_place(const RID *rid, RecordUpdater updater)

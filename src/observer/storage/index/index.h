@@ -32,7 +32,7 @@ public:
 
 class IndexScanner;
 
-class Index {
+class Index { //虚基类，有一种实现类是B+树索引
 
 public:
   Index() = default;
@@ -43,6 +43,7 @@ public:
     return index_meta_;
   }
 
+  virtual RC drop() = 0;
   virtual RC insert_entry(const char *record, const RID *rid) = 0;
   virtual RC delete_entry(const char *record, const RID *rid) = 0;
 

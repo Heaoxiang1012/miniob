@@ -115,7 +115,7 @@ void ParseStage::callback_event(StageEvent *event, CallbackContext *context)
   sql_event->session_event()->done_immediate();
   sql_event->done_immediate();
   LOG_TRACE("Exit\n");
-  return;
+  return; 
 }
 
 RC ParseStage::handle_request(StageEvent *event)
@@ -129,7 +129,7 @@ RC ParseStage::handle_request(StageEvent *event)
     return RC::INTERNAL;
   }
 
-  RC ret = parse(sql.c_str(), query_result);
+  RC ret = parse(sql.c_str(), query_result); //词法语法解析，会生成一个数据结构query_result 
   if (ret != RC::SUCCESS) {
     // set error information to event
     sql_event->session_event()->set_response("Failed to parse sql\n");

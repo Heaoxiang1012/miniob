@@ -52,7 +52,9 @@ Table::~Table()
 
 RC Table::create(
     const char *path, const char *name, const char *base_dir, int attribute_count, const AttrInfo attributes[])
-{
+{//path -- table meta data(name,colum,index)
+//base_dir -- table data storage 
+//attribute -- 字段名
 
   if (common::is_blank(name)) {
     LOG_WARN("Name cannot be empty");
@@ -115,6 +117,30 @@ RC Table::create(
 
   base_dir_ = base_dir;
   LOG_INFO("Successfully create table %s:%s", base_dir, name);
+  return rc;
+}
+
+RC Table::drop(const char *path)
+{
+  RC rc = RC::SUCCESS;
+
+  //drop index first 
+  for(Index *index : indexes_){
+    index->drop(); 
+  }
+
+  //destroy record handler
+  rc = record_handler_->destroy();
+  delete record_handler_;
+  record_handler_ = nullptr;
+  //destroy buffer pool and remove data file 
+  std::string data_file = table_data_file(this->get_base_file(), this->name());
+  BufferPoolManager &bpm = BufferPoolManager::instance();
+  rc = bpm.remove_file(data_file.c_str()); //TODO
+
+  //remove  meta file 
+  int remove_ret = ::remove(path);
+
   return rc;
 }
 
@@ -291,6 +317,10 @@ const char *Table::name() const
 {
   return table_meta_.name();
 }
+const char *Table::get_base_file() const
+{
+  return base_dir_.c_str();
+} 
 
 const TableMeta &Table::table_meta() const
 {
