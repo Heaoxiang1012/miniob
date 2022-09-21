@@ -265,6 +265,16 @@ RC RecordFileHandler::init(DiskBufferPool *buffer_pool)
   LOG_INFO("Successfully open record file handle");
   return RC::SUCCESS;
 }
+RC RecordFileHandler::destroy()
+{
+  if (disk_buffer_pool_ == nullptr){
+    LOG_ERROR("record file handler has not been.");
+    return RC::RECORD_CLOSED;
+  }
+
+  close();
+  return RC::SUCCESS;
+}
 
 void RecordFileHandler::close()
 {

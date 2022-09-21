@@ -44,7 +44,15 @@ public:
    * @param attributes 字段
    */
   RC create(const char *path, const char *name, const char *base_dir, int attribute_count, const AttrInfo attributes[]);
-
+  /**
+   * 删除一张表
+   * @param path 元数据保存路径，不知道是否需要，感觉别的地方应该有存？
+   * 
+   * 
+   * 
+  */
+  
+  RC drop(const char *path);
   /**
    * 打开一个表
    * @param meta_file 保存表元数据的文件完整路径
@@ -72,6 +80,7 @@ public:
 
 public:
   const char *name() const;
+  const char *get_base_dir() const;
 
   const TableMeta &table_meta() const;
 
@@ -102,9 +111,10 @@ private:
 
 private:
   RC init_record_handler(const char *base_dir);
+  RC remove_record_handler();
   RC make_record(int value_num, const Value *values, char *&record_out);
 
-public:
+ public:
   Index *find_index(const char *index_name) const;
   Index *find_index_by_field(const char *field_name) const;
 

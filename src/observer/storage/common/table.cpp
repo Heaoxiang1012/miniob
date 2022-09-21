@@ -117,6 +117,42 @@ RC Table::create(
   LOG_INFO("Successfully create table %s:%s", base_dir, name);
   return rc;
 }
+RC Table::drop(const char *path)
+{
+  LOG_INFO("Begin to drop table %s : %s",base_dir_,name());
+  RC rc = RC::SUCCESS;
+  std::string data_file = table_data_file(base_dir_.c_str(), name());
+  // drop表是create表的逆过程
+  // 0.检查所有存在的与表关联的index，并删除 TODO
+  // 删除 indexes_
+  for(Index *index:indexes_){
+    index->drop();
+  }
+  indexes_.clear();
+
+  // 1.删除 record_handler (其实第一步应该是删除index)
+  rc = remove_record_handler();
+  delete record_handler_;
+  record_handler_ = nullptr;
+
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to drop table %s due to remove record handler failed.",data_file);
+    // don't need to remove the data_file
+    return rc;
+  }
+  // 2.删除 buffer pool
+  BufferPoolManager &bpm = BufferPoolManager::instance(); //全局唯一实例吗
+  rc = bpm.remove_file(data_file.c_str());
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to create disk buffer pool of data file. file name=%s", data_file.c_str());
+    return rc;
+  }
+  // 3.删除 表的元数据table_meta、头文件
+  int remove_ret = ::remove(path);
+  rc = table_meta_.destroy();  //不知道是否有必要，因为不是一个指针
+
+  return rc;
+}
 
 RC Table::open(const char *meta_file, const char *base_dir)
 {
@@ -292,6 +328,11 @@ const char *Table::name() const
   return table_meta_.name();
 }
 
+const char *Table::get_base_dir() const 
+{
+  return base_dir_.c_str();
+}
+
 const TableMeta &Table::table_meta() const
 {
   return table_meta_;
@@ -359,6 +400,17 @@ RC Table::init_record_handler(const char *base_dir)
     delete record_handler_;
     record_handler_ = nullptr;
     return rc;
+  }
+
+  return rc;
+}
+
+RC Table::remove_record_handler()
+{
+  RC rc = RC::SUCCESS;
+  rc = record_handler_->destroy();
+  if(rc != RC::SUCCESS){
+    LOG_ERROR("Failed to remove record handler. rc=%d:%s", rc, strrc(rc));
   }
 
   return rc;

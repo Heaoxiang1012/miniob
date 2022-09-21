@@ -113,6 +113,8 @@ class RecordFileHandler {
 public:
   RecordFileHandler() = default;
   RC init(DiskBufferPool *buffer_pool);
+  RC destroy();
+
   void close();
 
   /**

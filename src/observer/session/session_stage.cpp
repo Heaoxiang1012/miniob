@@ -138,7 +138,7 @@ void SessionStage::callback_event(StageEvent *event, CallbackContext *context)
 
 void SessionStage::handle_request(StageEvent *event)
 {
-  SessionEvent *sev = dynamic_cast<SessionEvent *>(event);
+  SessionEvent *sev = dynamic_cast<SessionEvent *>(event); //创建session event 
   if (nullptr == sev) {
     LOG_ERROR("Cannot cat event to sessionEvent");
     return;

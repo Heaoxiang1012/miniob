@@ -98,6 +98,19 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
   return RC::SUCCESS;
 }
 
+RC TableMeta::destroy()
+{
+  RC rc = RC::SUCCESS;
+
+  //record_size_ = 0
+  record_size_ = 0;
+  //清空非空file_filed
+  if(!fields_.empty()){
+    fields_.clear();
+  }
+  //清空非空的sys_fields(静态变量，可能是全局table共用，不能清)
+  return rc;
+}
 RC TableMeta::add_index(const IndexMeta &index)
 {
   indexes_.push_back(index);

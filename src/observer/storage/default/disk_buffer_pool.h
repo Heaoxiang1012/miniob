@@ -224,6 +224,10 @@ public:
    */
   RC flush_all_pages();
 
+  std::string get_file_name() const {
+    return file_name_;
+  }
+
 protected: //派生类可以访问，但是其他类不能访问
   RC allocate_frame(Frame **buf);
 
@@ -258,6 +262,7 @@ public:
   ~BufferPoolManager();
 
   RC create_file(const char *file_name);
+  RC remove_file(const char *file_name);
   RC open_file(const char *file_name, DiskBufferPool *&bp);
   RC close_file(const char *file_name);
 

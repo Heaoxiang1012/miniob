@@ -610,6 +610,14 @@ RC BufferPoolManager::close_file(const char *_file_name)
   delete bp;
   return RC::SUCCESS;
 }
+RC BufferPoolManager::remove_file(const char *_file_name)
+{
+  RC rc = SUCCESS;
+  rc = close_file(_file_name);
+
+  int remove_ret = ::remove(_file_name);
+  return rc;
+}
 
 RC BufferPoolManager::flush_page(Frame &frame)
 {
