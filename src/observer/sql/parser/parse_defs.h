@@ -70,11 +70,22 @@ typedef struct _Condition {
 typedef struct {
   size_t attr_num;                // Length of attrs in Select clause
   RelAttr attributes[MAX_NUM];    // attrs in Select clause
+  
   size_t relation_num;            // Length of relations in Fro clause
   char *relations[MAX_NUM];       // relations in From clause
+  //可能是多表查询，因此需要一个relation_num 和 relations
+
   size_t condition_num;           // Length of conditions in Where clause
   Condition conditions[MAX_NUM];  // conditions in Where clause
 } Selects;
+// select * from t ;                                         seq: 1) table is null  ? 
+// select id,name from t ;                                        2) atrr  is valid ?
+// select * from t where id = 1;                                  3) if attr is * , do compelte ;
+// select t.id,t.name from t;                                     4) condition -> attr in table ? attr can compare (multi table)
+// select * from t where id > 1;                                  
+// select * from t1,t2;
+// select t1.name , t2.id from t1,t2 where t1.id = t2.id;
+// select * from t where id = 1 and name = 'abc';
 
 // struct of insert
 typedef struct {
@@ -82,6 +93,7 @@ typedef struct {
   size_t value_num;       // Length of values
   Value values[MAX_NUM];  // values to insert
 } Inserts;
+// insert into t values(1,2);
 
 // struct of delete
 typedef struct {
@@ -98,6 +110,8 @@ typedef struct {
   size_t condition_num;           // Length of conditions in Where clause
   Condition conditions[MAX_NUM];  // conditions in Where clause
 } Updates;
+
+
 
 typedef struct {
   char *name;     // Attribute name

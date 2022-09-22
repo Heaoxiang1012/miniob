@@ -13,15 +13,15 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include "common/log/log.h"
-#include "sql/operator/delete_operator.h"
+#include "sql/operator/update_operator.h"
 #include "storage/common/record.h"
 #include "storage/common/table.h"
-#include "sql/stmt/delete_stmt.h"
+#include "sql/stmt/update_stmt.h"
 
-RC DeleteOperator::open()
+RC UpdateOperator::open()
 {
   if (children_.size() != 1) {
-    LOG_WARN("delete operator must has 1 child");
+    LOG_WARN("update operator must has 1 child");
     return RC::INTERNAL;
   }
 
@@ -32,8 +32,8 @@ RC DeleteOperator::open()
     return rc;
   }
 
-  Table *table = delete_stmt_->table();
-  while (RC::SUCCESS == (rc = child->next())) { //保证返回条件过滤后的record
+  Table *table = update_stmt_->table();
+  while (RC::SUCCESS == (rc = child->next())) {
     Tuple *tuple = child->current_tuple();
     if (nullptr == tuple) {
       LOG_WARN("failed to get current record: %s", strrc(rc));
@@ -42,7 +42,8 @@ RC DeleteOperator::open()
 
     RowTuple *row_tuple = static_cast<RowTuple *>(tuple);
     Record &record = row_tuple->record();
-    rc = table->delete_record(nullptr, &record);
+    //rc = table->delete_record(nullptr, &record);
+    rc = table->update_record(nullptr,&record,update_stmt_->attribute_name(),update_stmt_->values(),update_stmt_->value_amount()); 
     if (rc != RC::SUCCESS) {
       LOG_WARN("failed to delete record: %s", strrc(rc));
       return rc;
@@ -51,12 +52,12 @@ RC DeleteOperator::open()
   return RC::SUCCESS;
 }
 
-RC DeleteOperator::next()
+RC UpdateOperator::next()
 {
   return RC::RECORD_EOF;
 }
 
-RC DeleteOperator::close()
+RC UpdateOperator::close()
 {
   children_[0]->close();
   return RC::SUCCESS;

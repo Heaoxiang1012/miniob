@@ -14,7 +14,7 @@ UPDATE Update_table_1 SET col2=0 WHERE col1=1;
 -- sort SELECT * FROM Update_table_1;
 
 -- echo 3. update a index column
-UPDATE Update_table_1 SET id=4 WHERE t_name='N3';
+UPDATE Update_table_1 SET id=4 WHERE t_name='N3'; 
 -- sort SELECT * FROM Update_table_1;
 
 -- echo 4. update without conditions

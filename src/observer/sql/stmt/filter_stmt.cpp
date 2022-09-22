@@ -104,6 +104,8 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
     left = new ValueExpr(condition.left_value);
   }
 
+  //TODO : 两边类型能否做比较的判断
+
   if (condition.right_is_attr) {
     Table *table = nullptr;
     const FieldMeta *field = nullptr;

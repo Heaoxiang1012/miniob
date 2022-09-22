@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include <limits.h>
 #include <string.h>
 #include <algorithm>
+#include <memory>
 
 #include "common/defs.h"
 #include "storage/common/table.h"
@@ -28,6 +29,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/index/index.h"
 #include "storage/index/bplus_tree_index.h"
 #include "storage/trx/trx.h"
+
 
 Table::~Table()
 {
@@ -309,6 +311,7 @@ RC Table::insert_record(Trx *trx, int value_num, const Value *values)
   }
 
   char *record_data;
+
   RC rc = make_record(value_num, values, record_data);
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to create a record. rc=%d:%s", rc, strrc(rc));
@@ -322,6 +325,69 @@ RC Table::insert_record(Trx *trx, int value_num, const Value *values)
   delete[] record_data;
   return rc;
 }
+RC Table::update_a_col_record(char *record_data, const char* attribute_name,const int value_num, const Value value){
+  
+  // const int normal_field_start_index = table_meta_.sys_field_num();
+  // const int normal_field_num = table_meta_.field_num();
+
+  // for (int i = normal_field_start_index ; i < normal_field_num ; i++) {
+  //   FieldMeta *field = table_meta_.field(i);
+
+  // }
+
+  const FieldMeta *field = table_meta_.field(attribute_name);
+  memcpy(record_data + field->offset(), value.data, field->len());
+
+  return RC::SUCCESS;
+}
+RC Table::update_record(Trx *trx,const char *attribute_name,const Value *values,int condition_num, const Condition *conditions, int *updated_count)
+{
+  LOG_ERROR("WHY HERE");
+  return RC::UNIMPLENMENT;
+}
+
+RC Table::update_record(Trx *trx,Record *record, const char* attribute_name, const Value value,const int value_num)
+{
+  RC rc = RC::SUCCESS;
+  // 更新record 
+  // 修改旧data_  TODO
+  
+  rc = update_a_col_record(record->data(),attribute_name,value_num,value); // TODO
+  
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("Failed to update a col of record. rc=%d:%s", rc, strrc(rc));
+    return rc;
+  }
+
+  if (trx != nullptr) {
+    trx->init_trx_info(this, *record);
+  }
+  rc = record_handler_->update_record(record);
+  if (rc != RC::SUCCESS) {
+    LOG_ERROR("update record failed. table name=%s, rc=%d:%s", table_meta_.name(), rc, strrc(rc));
+    return rc;
+  }
+
+  // if (trx != nullptr) {
+  //   rc = trx->update_record(this, record);
+  //   if (rc != RC::SUCCESS) {
+  //     LOG_ERROR("Failed to log operation(insertion) to trx");
+
+  //     RC rc2 = record_handler_->delete_record(&record->rid());
+  //     if (rc2 != RC::SUCCESS) {
+  //       LOG_ERROR("Failed to rollback record data when insert index entries failed. table name=%s, rc=%d:%s",
+  //           name(),
+  //           rc2,
+  //           strrc(rc2));
+  //     }
+  //     return rc;
+  //   }
+  // }
+  
+  // 是否需要更新INDEX? TODO
+  return rc;
+}
+
 
 const char *Table::name() const
 {
@@ -657,12 +723,6 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
   return rc;
 }
 
-RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num,
-    const Condition conditions[], int *updated_count)
-{
-  return RC::GENERIC_ERROR;
-}
-
 class RecordDeleter {
 public:
   RecordDeleter(Table &table, Trx *trx) : table_(table), trx_(trx)
@@ -711,7 +771,7 @@ RC Table::delete_record(Trx *trx, Record *record)
   if (trx != nullptr) {
     rc = trx->delete_record(this, record);
   } else {
-    rc = delete_entry_of_indexes(record->data(), record->rid(), false);  // 重复代码 refer to commit_delete
+    rc = delete_entry_of_indexes(record->data(), record->rid(), false);  // 重复代码 refer to commit_delete //先删这个record有关的索引
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to delete indexes of record (rid=%d.%d). rc=%d:%s",
                  record->rid().page_num, record->rid().slot_num, rc, strrc(rc));

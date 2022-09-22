@@ -49,9 +49,10 @@ protected:
   RC do_select(SQLStageEvent *sql_event);
   RC do_insert(SQLStageEvent *sql_event);
   RC do_delete(SQLStageEvent *sql_event);
+  RC do_update(SQLStageEvent *sql_event);
 
-protected:
-private:
+ protected:
+ private:
   Stage *default_storage_stage_ = nullptr;
   Stage *mem_storage_stage_ = nullptr;
 };

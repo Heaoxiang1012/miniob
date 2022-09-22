@@ -45,7 +45,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
 
   // collect tables in `from` statement
   std::vector<Table *> tables;
-  std::unordered_map<std::string, Table *> table_map;
+  std::unordered_map<std::string, Table *> table_map; //table_name -> Table *
   for (int i = 0; i < select_sql.relation_num; i++) {
     const char *table_name = select_sql.relations[i];
     if (nullptr == table_name) {
@@ -68,16 +68,16 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
   for (int i = select_sql.attr_num - 1; i >= 0; i--) {
     const RelAttr &relation_attr = select_sql.attributes[i];
 
-    if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
-      for (Table *table : tables) {
+    if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) { 
+      for (Table *table : tables) { 
         wildcard_fields(table, query_fields);
       }
 
-    } else if (!common::is_blank(relation_attr.relation_name)) { // TODO
+    } else if (!common::is_blank(relation_attr.relation_name)) { // TODO  //区分的是 table_name.attr 或是 attr 这两种情况， table_name.attr 进到这个if
       const char *table_name = relation_attr.relation_name;
       const char *field_name = relation_attr.attribute_name;
 
-      if (0 == strcmp(table_name, "*")) {
+      if (0 == strcmp(table_name, "*")) {  
         if (0 != strcmp(field_name, "*")) {
           LOG_WARN("invalid field name while table is *. attr=%s", field_name);
           return RC::SCHEMA_FIELD_MISSING;
@@ -85,7 +85,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
         for (Table *table : tables) {
           wildcard_fields(table, query_fields);
         }
-      } else {
+      } else { 
         auto iter = table_map.find(table_name);
         if (iter == table_map.end()) {
           LOG_WARN("no such table in from list: %s", table_name);
@@ -93,9 +93,9 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
         }
 
         Table *table = iter->second;
-        if (0 == strcmp(field_name, "*")) {
+        if (0 == strcmp(field_name, "*")) {  
           wildcard_fields(table, query_fields);
-        } else {
+        } else { 
           const FieldMeta *field_meta = table->table_meta().field(field_name);
           if (nullptr == field_meta) {
             LOG_WARN("no such field. field=%s.%s.%s", db->name(), table->name(), field_name);
