@@ -90,6 +90,7 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
     return RC::INVALID_ARGUMENT;
   }
 
+  bool is_date = false;
   Expression *left = nullptr;
   Expression *right = nullptr;
   if (condition.left_is_attr) {
@@ -101,35 +102,69 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
       return rc;
     }
     left = new FieldExpr(table, field);
+    FieldExpr *_temp_left = dynamic_cast<FieldExpr *>(left);
+    if (_temp_left->get_field_type() == AttrType::DATES) is_date = true;
+
+    if (condition.right_is_attr) {
+      Table *table = nullptr;
+      const FieldMeta *field = nullptr;
+      rc = get_table_and_field(db, default_table, tables, condition.right_attr, table, field);  
+      if (rc != RC::SUCCESS) {
+        LOG_WARN("cannot find attr");
+        delete left;
+        return rc;
+      }
+      right = new FieldExpr(table, field);
+      FieldExpr *_temp_right = dynamic_cast<FieldExpr *>(right);
+      if (_temp_right->get_field_type() == AttrType::DATES) is_date = true;
+    } else {
+      if (is_date) {
+        int32_t date = -1;
+        rc = string_to_date((const char *)condition.right_value.data, date);
+        // condition.right_value.type = AttrType::DATES; //需要修改condition 值的类型为date吗？
+        if(rc != RC::SUCCESS){
+          return rc;
+        }
+      }
+      right = new ValueExpr(condition.right_value);
+    }
   } else {
-    if(condition.right_value.type == AttrType::DATES){
+    if(is_date){
       int32_t date = -1;
       rc = string_to_date((const char *)condition.left_value.data, date);
+      if (rc != RC::SUCCESS) {
+        return rc;
+      }
     }
-    
     left = new ValueExpr(condition.left_value);
   }
 
   //TODO : 两边类型能否做比较的判断
 
-  if (condition.right_is_attr) {
-    Table *table = nullptr;
-    const FieldMeta *field = nullptr;
-    rc = get_table_and_field(db, default_table, tables, condition.right_attr, table, field);  
-    if (rc != RC::SUCCESS) {
-      LOG_WARN("cannot find attr");
-      delete left;
-      return rc;
-    }
-    right = new FieldExpr(table, field);
-  } else {
-    if(condition.left_value.type == AttrType::DATES){
-      int32_t date = -1;
-      rc = string_to_date((const char *)condition.right_value.data, date);
-    }
-    
-    right = new ValueExpr(condition.right_value);
-  }
+  // if (condition.right_is_attr) {
+  //   Table *table = nullptr;
+  //   const FieldMeta *field = nullptr;
+  //   rc = get_table_and_field(db, default_table, tables, condition.right_attr, table, field);  
+  //   if (rc != RC::SUCCESS) {
+  //     LOG_WARN("cannot find attr");
+  //     delete left;
+  //     return rc;
+  //   }
+  //   right = new FieldExpr(table, field);
+  //   FieldExpr *_temp_right = dynamic_cast<FieldExpr *>(right);
+  //   if (_temp_right->get_field_type() == AttrType::DATES) is_date = true;
+  // } else {
+  //   if (is_date) {
+  //     int32_t date = -1;
+  //     rc = string_to_date((const char *)condition.right_value.data, date);
+  //     // condition.right_value.type = AttrType::DATES; //需要修改condition 值的类型为date吗？
+  //     if(rc != RC::SUCCESS){
+  //       return rc;
+  //     }
+  //   }
+
+  //   right = new ValueExpr(condition.right_value);
+  // }
 
   filter_unit = new FilterUnit;
   filter_unit->set_comp(comp);

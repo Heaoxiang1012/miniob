@@ -70,6 +70,11 @@ public:
     return field_.field_name();
   }
 
+  AttrType get_field_type() const 
+  {
+    return field_.attr_type();
+  }
+
   RC get_value(const Tuple &tuple, TupleCell &cell) const override;
 private:
   Field field_;
