@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #ifndef __OBSERVER_SQL_EXECUTE_STAGE_H__
 #define __OBSERVER_SQL_EXECUTE_STAGE_H__
 
+#include "storage/common/record.h"
 #include "common/seda/stage.h"
 #include "sql/parser/parse.h"
 #include "rc.h"
@@ -22,6 +23,17 @@ See the Mulan PSL v2 for more details. */
 class SQLStageEvent;
 class SessionEvent;
 class SelectStmt;
+
+class MyCompare{
+public:
+  bool operator()(const RID rid1,const RID rid2) const
+  {
+    if(rid1.page_num == rid2.page_num){
+      return rid1.slot_num < rid2.slot_num;
+    } else
+      return rid1.page_num < rid2.page_num;
+  }
+};
 
 class ExecuteStage : public common::Stage {
 public:

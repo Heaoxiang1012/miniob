@@ -68,8 +68,8 @@ public:
   virtual int cell_num() const = 0; 
   virtual RC  cell_at(int index, TupleCell &cell) const = 0;
   virtual RC  find_cell(const Field &field, TupleCell &cell) const = 0;
-
-  virtual RC  cell_spec_at(int index, const TupleCellSpec *&spec) const = 0;
+  
+  virtual RC cell_spec_at(int index, const TupleCellSpec *&spec) const = 0;
 };
 
 class RowTuple : public Tuple
@@ -102,7 +102,7 @@ public:
   {
     return speces_.size();
   }
-
+  
   RC cell_at(int index, TupleCell &cell) const override
   {
     if (index < 0 || index >= speces_.size()) {

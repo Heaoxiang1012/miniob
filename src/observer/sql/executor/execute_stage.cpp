@@ -14,6 +14,8 @@ See the Mulan PSL v2 for more details. */
 
 #include <string>
 #include <sstream>
+#include <vector>
+#include <algorithm>
 
 #include "execute_stage.h"
 
@@ -401,12 +403,13 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     return rc;
   }
 
-  Operator *scan_oper = try_to_create_index_scan_operator(select_stmt->filter_stmt());
+  // Operator *scan_oper = try_to_create_index_scan_operator(select_stmt->filter_stmt());
+  Operator *scan_oper = nullptr;
   if (nullptr == scan_oper) {
     scan_oper = new TableScanOperator(select_stmt->tables()[0]);
   }
 
-  DEFER([&] () {delete scan_oper;});
+  DEFER([&] () {delete scan_oper;}); //callback function
 
   PredicateOperator pred_oper(select_stmt->filter_stmt());
   pred_oper.add_child(scan_oper);
@@ -423,10 +426,13 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
 
   std::stringstream ss;
   print_tuple_header(ss, project_oper);
+
   while ((rc = project_oper.next()) == RC::SUCCESS) {
     // get current record
     // write to response
-    Tuple * tuple = project_oper.current_tuple();
+
+    Tuple *tuple = project_oper.current_tuple();  // 
+
     if (nullptr == tuple) {
       rc = RC::INTERNAL;
       LOG_WARN("failed to get current record. rc=%s", strrc(rc));
@@ -436,7 +442,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     tuple_to_string(ss, *tuple);
     ss << std::endl;
   }
-
+  
   if (rc != RC::RECORD_EOF) {
     LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
     project_oper.close();
