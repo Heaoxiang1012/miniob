@@ -45,6 +45,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/default/default_handler.h"
 #include "storage/common/condition_filter.h"
 #include "storage/trx/trx.h"
+#include "util/date.h"
 
 using namespace common;
 
@@ -327,6 +328,14 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
   ValueExpr &right_value_expr = *(ValueExpr *)right;
   TupleCell value;
   right_value_expr.get_tuple_cell(value);
+
+  // LOG_WARN("[BUG]: right_value_expr , value : %s,%d",value.data(),value.attr_type());
+
+  int32_t right_value_string_to_int32 = -1;
+  string_to_date(value.data(),right_value_string_to_int32);
+
+  value.set_data((char *)&right_value_string_to_int32);
+  value.set_type(AttrType::DATES);
 
   const TupleCell *left_cell = nullptr;
   const TupleCell *right_cell = nullptr;

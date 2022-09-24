@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/filter_stmt.h"
 #include "storage/common/db.h"
 #include "storage/common/table.h"
+#include "util/date.h"
 
 FilterStmt::~FilterStmt()
 {
@@ -101,6 +102,8 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
     }
     left = new FieldExpr(table, field);
   } else {
+    int32_t date = -1;
+    rc = string_to_date((const char *)condition.left_value.data, date);
     left = new ValueExpr(condition.left_value);
   }
 
@@ -117,6 +120,8 @@ RC FilterStmt::create_filter_unit(Db *db, Table *default_table, std::unordered_m
     }
     right = new FieldExpr(table, field);
   } else {
+    int32_t date = -1;
+    rc = string_to_date((const char *)condition.right_value.data, date);
     right = new ValueExpr(condition.right_value);
   }
 

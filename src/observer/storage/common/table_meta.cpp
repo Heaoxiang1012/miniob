@@ -267,6 +267,10 @@ int TableMeta::deserialize(std::istream &is)
   std::vector<FieldMeta> fields(field_num);
   for (int i = 0; i < field_num; i++) {
     FieldMeta &field = fields[i];
+    // std::string ta = "date_table";
+    // if (table_name == ta) {
+    //   LOG_INFO("debug:: %s : %d",field.name(),field.type());
+    // }
 
     const Json::Value &field_value = fields_value[i];
     rc = FieldMeta::from_json(field_value, field);

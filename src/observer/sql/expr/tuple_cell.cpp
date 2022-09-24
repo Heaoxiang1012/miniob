@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/field.h"
 #include "common/log/log.h"
 #include "util/comparator.h"
+#include "util/date.h"
 
 void TupleCell::to_string(std::ostream &os) const
 {
@@ -34,6 +35,9 @@ void TupleCell::to_string(std::ostream &os) const
       os << data_[i];
     }
   } break;
+  case DATES: {
+    os << date_to_string(*(int32_t*)data_);
+  } break;
   default: {
     LOG_WARN("unsupported attr type: %d", attr_type_);
   } break;
@@ -42,11 +46,27 @@ void TupleCell::to_string(std::ostream &os) const
 
 int TupleCell::compare(const TupleCell &other) const
 {
-  if (this->attr_type_ == other.attr_type_) {
+  
+  if (this->attr_type_ == other.attr_type_ || (this->attr_type() == AttrType::DATES) || (other.attr_type() == AttrType::DATES)) {
     switch (this->attr_type_) {
     case INTS: return compare_int(this->data_, other.data_);
     case FLOATS: return compare_float(this->data_, other.data_);
     case CHARS: return compare_string(this->data_, this->length_, other.data_, other.length_);
+    case DATES: {
+      bool flag1 = false;
+      bool flag2 = false;
+      if (this->attr_type() == AttrType::CHARS) {
+        flag1 = true;
+      } 
+      if (other.attr_type() == AttrType::CHARS) {
+        flag2 = true;
+      }
+
+      if(flag1 == flag2){
+        LOG_ERROR("something bad , why all chars types ?");
+      }
+      return compare_date(this->data_,flag1,other.data_,flag2); // TODO
+    }
     default: {
       LOG_WARN("unsupported type: %d", this->attr_type_);
     }

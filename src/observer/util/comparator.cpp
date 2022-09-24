@@ -14,6 +14,9 @@ See the Mulan PSL v2 for more details. */
 
 #include <string.h>
 #include <algorithm>
+#include <stdint.h>
+#include "util/date.h"
+#include "common/log/log.h"
 
 const double epsilon = 1E-6;
 
@@ -36,6 +39,37 @@ int compare_float(void *arg1, void *arg2)
     return -1;
   }
   return 0;
+}
+int compare_date(void *arg1,void *arg2)
+{
+  int32_t v1 = -1,v2 = -1;
+  v1 = *(int32_t *)arg1;
+  v2 = *(int32_t *)arg2;
+  // const char *s1 = (const char *)arg1;
+  // const char *s2 = (const char *)arg2;
+
+  // string_to_date(s1, v1);
+  // string_to_date(s2,v2);
+  LOG_WARN("v1: %d,v2: %d",v1,v2);
+  return v1 - v2;
+}
+int compare_date(void *arg1,bool flag1,void *arg2,bool flag2)
+{
+  int32_t v1,v2;
+  
+  if (!flag1)
+  {
+    v1 = *(int32_t *)arg1;
+    const char *s2 = (const char *)arg2;
+    string_to_date(s2, v2);
+  }
+  else {
+    v2 = *(int32_t *)arg2;
+    const char *s1 = (const char *)arg1;
+    string_to_date(s1, v1);
+  }
+  LOG_WARN("[date check]v1: %d,v2: %d", v1, v2);
+  return v1 - v2;
 }
 
 int compare_string(void *arg1, int arg1_max_length, void *arg2, int arg2_max_length)

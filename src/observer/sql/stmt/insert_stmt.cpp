@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/stmt/insert_stmt.h"
 #include "common/log/log.h"
+#include "util/date.h"
 #include "storage/common/db.h"
 #include "storage/common/table.h"
 
@@ -54,6 +55,24 @@ RC InsertStmt::create(Db *db, const Inserts &inserts, Stmt *&stmt)
     const AttrType field_type = field_meta->type();
     const AttrType value_type = values[i].type;
     if (field_type != value_type) { // TODO try to convert the value type to field type
+      if(field_type == AttrType::DATES){
+        int32_t date = -1;
+        RC rc = string_to_date(static_cast<const char *>(values[i].data), date);
+        if(rc != RC::SUCCESS){
+          LOG_TRACE("values.data cant convert to date.");
+          return rc;
+        }
+        
+        value_destroy(const_cast<Value*>(&values[i])); //right ?
+        value_init_date(const_cast<Value *>(&values[i]), date);
+        if(field_type != values[i].type){
+          LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d", 
+               table_name, field_meta->name(), field_type, values[i].type);
+          rc = RC::SCHEMA_FIELD_TYPE_MISMATCH;
+        }
+        stmt = new InsertStmt(table, values, value_num);
+        return rc;
+      }
       LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d", 
                table_name, field_meta->name(), field_type, value_type);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;

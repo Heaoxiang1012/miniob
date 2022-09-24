@@ -799,6 +799,8 @@ RC BplusTreeHandler::create(const char *file_name, AttrType attr_type, int attr_
   IndexFileHeader *file_header = (IndexFileHeader *)pdata;
   file_header->attr_length = attr_length;
   file_header->key_length = attr_length + sizeof(RID);
+  // LOG_INFO("file_header->key_length: %d,file_header->attr_length : %d",
+  //          file_header->key_length, attr_length);
   file_header->attr_type = attr_type;
   file_header->internal_max_size = internal_max_size;
   file_header->leaf_max_size = leaf_max_size;
@@ -854,6 +856,8 @@ RC BplusTreeHandler::open(const char *file_name)
   disk_buffer_pool_ = disk_buffer_pool;
 
   mem_pool_item_ = new common::MemPoolItem(file_name);
+  LOG_WARN("file_header_.key_length:%d,file_header_.attr_length:%d",
+           file_header_.key_length, file_header_.attr_length);
   if (mem_pool_item_->init(file_header_.key_length) < 0) {
     LOG_WARN("Failed to init memory pool for index %s", file_name);
     close();
