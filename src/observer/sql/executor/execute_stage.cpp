@@ -240,6 +240,29 @@ void print_tuple_header(std::ostream &os, const ProjectOperator &oper)
     os << '\n';
   }
 }
+
+std::string tuple_to_string(const Tuple &tuple)
+{
+  std::string str = "";
+  TupleCell cell;
+  RC rc = RC::SUCCESS;
+  bool first_field = true;
+  for (int i = 0; i < tuple.cell_num() ; ++i) {
+    rc = tuple.cell_at(i, cell);
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to fetch field of cell. index=%d, rc=%s", i, strrc(rc));
+      break;
+    }
+    if (!first_field) {
+      str += " | ";
+    } else {
+      first_field = false;
+    }
+    cell.to_string(str);
+  }
+  return str;
+}
+
 void tuple_to_string(std::ostream &os, const Tuple &tuple)
 {
   TupleCell cell;
@@ -397,58 +420,114 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   SelectStmt *select_stmt = (SelectStmt *)(sql_event->stmt());
   SessionEvent *session_event = sql_event->session_event();
   RC rc = RC::SUCCESS;
-  if (select_stmt->tables().size() != 1) {
-    LOG_WARN("select more than 1 tables is not supported");
-    rc = RC::UNIMPLENMENT;
-    return rc;
-  }
-
-  // Operator *scan_oper = try_to_create_index_scan_operator(select_stmt->filter_stmt());
-  Operator *scan_oper = nullptr;
-  if (nullptr == scan_oper) {
-    scan_oper = new TableScanOperator(select_stmt->tables()[0]);
-  }
-
-  DEFER([&] () {delete scan_oper;}); //callback function
-
-  PredicateOperator pred_oper(select_stmt->filter_stmt());
-  pred_oper.add_child(scan_oper);
-  ProjectOperator project_oper;
-  project_oper.add_child(&pred_oper);
-  for (const Field &field : select_stmt->query_fields()) {
-    project_oper.add_projection(field.table(), field.meta());
-  }
-  rc = project_oper.open();
-  if (rc != RC::SUCCESS) {
-    LOG_WARN("failed to open operator");
-    return rc;
-  }
-
   std::stringstream ss;
-  print_tuple_header(ss, project_oper);
 
-  while ((rc = project_oper.next()) == RC::SUCCESS) {
-    // get current record
-    // write to response
+  if (select_stmt->tables().size() != 1) {
+    // LOG_WARN("select more than 1 tables is not supported");
+    // rc = RC::UNIMPLENMENT;
+    // return rc;
+    std::vector<std::string> tuples_to_string;
+    
+    for (int i = select_stmt->tables().size() -1 ; i >= 0 ; --i) {
+      // Operator *scan_oper = try_to_create_index_scan_operator(nullptr); FIX BUG TODO 
+      Operator *scan_oper = nullptr;
+      if (nullptr == scan_oper) {
+        scan_oper = new TableScanOperator(select_stmt->tables()[i]);
+      }
+      PredicateOperator pred_oper(nullptr); // 直接放条件，条件可以再多表中比较，支持 但是改起来特别复杂 还是先用nullptr
+      pred_oper.add_child(scan_oper);
+      ProjectOperator project_oper;
+      project_oper.add_child(&pred_oper);
+      auto table_meta = (select_stmt->tables()[i])->table_meta();
 
-    Tuple *tuple = project_oper.current_tuple();  // 
-
-    if (nullptr == tuple) {
-      rc = RC::INTERNAL;
-      LOG_WARN("failed to get current record. rc=%s", strrc(rc));
-      break;
+      for (int j = table_meta.sys_field_num() ; j < table_meta.field_metas()->size();++j) {
+        const FieldMeta *field_meta = table_meta.field(j);
+        project_oper.add_projection(select_stmt->tables()[i], field_meta);
+      }
+      // for (const Field &field : select_stmt->query_fields()) {
+      //   if(strcmp(field.table_name(),(select_stmt->tables()[i])->name()))
+      //   {
+      //     project_oper.add_projection(field.table(), field.meta());
+      //   }
+      // }
+      rc = project_oper.open();
+      while((rc = project_oper.next()) == RC::SUCCESS){
+        Tuple *tuple = project_oper.current_tuple();  // projectTuple
+        if (nullptr == tuple) {
+          rc = RC::INTERNAL;
+          LOG_WARN("failed to get current record. rc=%s", strrc(rc));
+          break;
+        }
+        tuples_to_string.push_back(tuple_to_string(*tuple)); //
+      }
     }
 
-    tuple_to_string(ss, *tuple);
-    ss << std::endl;
-  }
-  
-  if (rc != RC::RECORD_EOF) {
-    LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
-    project_oper.close();
+    // output tuple head :
+    for (int i = 0; i < select_stmt->query_fields().size() ; ++i) {
+      const Field &field = select_stmt->query_fields()[i];
+      if(i != 0){
+        ss << " | ";
+      }
+      ss << field.table_name();
+      ss << '.';
+      ss << field.field_name();
+    }
+    ss << '\n';
+
+    // get all attr in all table ;
+    // LOG_WARN("[tuples size : %d] ", tuples_to_string.size());
+    // for (auto item : tuples_to_string) {
+    //   std::cout << item << std::endl;
+    // }
+
   } else {
-    rc = project_oper.close();
+    // Operator *scan_oper = try_to_create_index_scan_operator(select_stmt->filter_stmt());
+    Operator *scan_oper = nullptr;
+    if (nullptr == scan_oper) {
+      scan_oper = new TableScanOperator(select_stmt->tables()[0]);
+    }
+
+    DEFER([&] () {delete scan_oper;}); //callback function
+
+    PredicateOperator pred_oper(select_stmt->filter_stmt());
+    pred_oper.add_child(scan_oper);
+    ProjectOperator project_oper;
+    project_oper.add_child(&pred_oper);
+    for (const Field &field : select_stmt->query_fields()) {  //所有要查询的字段属性都通过add_projection放到project_oper里
+      project_oper.add_projection(field.table(), field.meta());
+    }
+    rc = project_oper.open();
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to open operator");
+      return rc;
+    }
+
+    
+    print_tuple_header(ss, project_oper);
+
+    while ((rc = project_oper.next()) == RC::SUCCESS) {
+      // get current record
+      // write to response
+
+      Tuple *tuple = project_oper.current_tuple();  // 
+
+      if (nullptr == tuple) {
+        rc = RC::INTERNAL;
+        LOG_WARN("failed to get current record. rc=%s", strrc(rc));
+        break;
+      }
+
+      tuple_to_string(ss, *tuple);
+      ss << std::endl;
+    }
+    if (rc != RC::RECORD_EOF) {
+      LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
+      project_oper.close();
+    } else {
+      rc = project_oper.close();
+    }
   }
+
   session_event->set_response(ss.str());
   return rc;
 }

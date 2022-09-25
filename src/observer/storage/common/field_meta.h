@@ -34,6 +34,7 @@ public:
 
 public:
   const char *name() const;
+  
   AttrType type() const;
   int offset() const;
   int len() const;

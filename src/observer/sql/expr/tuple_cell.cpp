@@ -18,6 +18,32 @@ See the Mulan PSL v2 for more details. */
 #include "util/comparator.h"
 #include "util/date.h"
 
+void TupleCell::to_string(std::string &str) const
+{
+  switch (attr_type_) {
+  case INTS: {
+    str += std::to_string(*(int *)data_) ;
+  } break;
+  case FLOATS: {
+    str += std::to_string(*(float *)data_) ;
+  } break;
+  case CHARS: {
+    for (int i = 0; i < length_; i++) {
+      if (data_[i] == '\0') {
+        break;
+      }
+      str += data_[i];
+    }
+  } break;
+  case DATES: {
+    str += date_to_string(*(int32_t*)data_);
+  } break;
+  default: {
+    LOG_WARN("unsupported attr type: %d", attr_type_);
+  } break;
+  }
+}
+
 void TupleCell::to_string(std::ostream &os) const
 {
   switch (attr_type_) {

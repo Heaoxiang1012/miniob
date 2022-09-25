@@ -36,7 +36,7 @@ public:
   void set_data(const char *data) { this->set_data(const_cast<char *>(data)); }
 
   void to_string(std::ostream &os) const;
-
+  void to_string(std::string &str) const;
   int compare(const TupleCell &other) const;
 
   const char *data() const

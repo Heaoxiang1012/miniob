@@ -26,6 +26,14 @@ SelectStmt::~SelectStmt()
     filter_stmt_ = nullptr;
   }
 }
+static void wildcard_fields_reverse(Table *table, std::vector<Field> &field_metas)
+{
+  const TableMeta &table_meta = table->table_meta();
+  const int field_num = table_meta.field_num();
+  for (int i = field_num - 1 ; i >= table_meta.sys_field_num(); --i) {
+    field_metas.push_back(Field(table, table_meta.field(i)));
+  }
+}
 
 static void wildcard_fields(Table *table, std::vector<Field> &field_metas)
 {
@@ -68,12 +76,16 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
   for (int i = select_sql.attr_num - 1; i >= 0; i--) {
     const RelAttr &relation_attr = select_sql.attributes[i];
 
-    if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) { 
-      for (Table *table : tables) { 
+    if (common::is_blank(relation_attr.relation_name) && 0 == strcmp(relation_attr.attribute_name, "*")) {
+      for (int i = tables.size() - 1 ; i >= 0; --i) {
+        Table *table = tables[i];
         wildcard_fields(table, query_fields);
       }
+      // for (Table *table : tables) {
+      //   wildcard_fields(table, query_fields);
+      // }
 
-    } else if (!common::is_blank(relation_attr.relation_name)) { // TODO  //区分的是 table_name.attr 或是 attr 这两种情况， table_name.attr 进到这个if
+    } else if (!common::is_blank(relation_attr.relation_name)) { // TODO  属性的表名不空
       const char *table_name = relation_attr.relation_name;
       const char *field_name = relation_attr.attribute_name;
 
@@ -94,6 +106,9 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
 
         Table *table = iter->second;
         if (0 == strcmp(field_name, "*")) {  
+          // if(table_map.size() != 1){
+          //   wildcard_fields_reverse(table, query_fields);
+          // } else
           wildcard_fields(table, query_fields);
         } else { 
           const FieldMeta *field_meta = table->table_meta().field(field_name);
@@ -105,7 +120,7 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
         query_fields.push_back(Field(table, field_meta));
         }
       }
-    } else {
+    } else { //属性的表名如果为空，则代表必是一张表（因为目前不支持自动查找表名）
       if (tables.size() != 1) {
         LOG_WARN("invalid. I do not know the attr's table. attr=%s", relation_attr.attribute_name);
         return RC::SCHEMA_FIELD_MISSING;
@@ -137,6 +152,8 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     LOG_WARN("cannot construct filter stmt");
     return rc;
   }
+
+  LOG_INFO("got %d filter in from stmt ",filter_stmt->filter_units().size());
 
   // everything alright
   SelectStmt *select_stmt = new SelectStmt();

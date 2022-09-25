@@ -114,6 +114,7 @@ public:
     FieldExpr *field_expr = (FieldExpr *)spec->expression();
     const FieldMeta *field_meta = field_expr->field().meta();
     cell.set_type(field_meta->type());
+    // LOG_WARN("[debug : in here ], type: %d ", field_meta->type());
     cell.set_data(this->record_->data() + field_meta->offset());
     cell.set_length(field_meta->len());
     return RC::SUCCESS;
@@ -130,8 +131,9 @@ public:
     for (int i = 0; i < speces_.size(); ++i) {
       const FieldExpr * field_expr = (const FieldExpr *)speces_[i]->expression();
       const Field &field = field_expr->field();
+      // LOG_WARN("field_name : %s , field.field_name : %s", field_name,field.field_name());
       if (0 == strcmp(field_name, field.field_name())) {
-	return cell_at(i, cell);
+        return cell_at(i, cell);
       }
     }
     return RC::NOTFOUND;
@@ -210,6 +212,7 @@ public:
     }
 
     const TupleCellSpec *spec = speces_[index];
+    LOG_WARN("spec alias : %s", spec->alias());
     return spec->expression()->get_value(*tuple_, cell);
   }
 
