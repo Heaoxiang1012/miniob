@@ -14,9 +14,12 @@ See the Mulan PSL v2 for more details. */
 
 #ifndef __OBSERVER_STORAGE_COMMON_CONDITION_FILTER_H_
 #define __OBSERVER_STORAGE_COMMON_CONDITION_FILTER_H_
+#include <string>
 
 #include "rc.h"
 #include "sql/parser/parse.h"
+
+
 
 class Record;
 class Table;
@@ -24,8 +27,10 @@ class Table;
 struct ConDesc {
   bool is_attr;     // 是否属性，false 表示是值
   int attr_length;  // 如果是属性，表示属性值长度
-  int attr_offset;  // 如果是属性，表示在记录中的偏移量
-  void *value;      // 如果是值类型，这里记录值的数据
+  int attr_offset ;  // 如果是属性，表示在记录中的偏移量
+  const char *value;  // 如果是值类型，这里记录值的数据
+
+  ConDesc() : is_attr(false), attr_length(-1), attr_offset(-1), value(nullptr){}
 };
 
 class ConditionFilter {
@@ -38,6 +43,7 @@ public:
    * @return true means match condition, false means failed to match.
    */
   virtual bool filter(const Record &rec) const = 0;
+  virtual bool filter(const std::string &rec) const = 0;
 };
 
 class DefaultConditionFilter : public ConditionFilter {
@@ -49,8 +55,9 @@ public:
   RC init(Table &table, const Condition &condition);
 
   virtual bool filter(const Record &rec) const;
+  virtual bool filter(const std::string &str) const;
 
-public:
+ public:
   const ConDesc &left() const
   {
     return left_;
@@ -83,8 +90,9 @@ public:
   RC init(const ConditionFilter *filters[], int filter_num);
   RC init(Table &table, const Condition *conditions, int condition_num);
   virtual bool filter(const Record &rec) const;
+  virtual bool filter(const std::string &rec) const;
 
-public:
+ public:
   int filter_num() const
   {
     return filter_num_;

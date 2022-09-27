@@ -44,7 +44,7 @@ AttrType attr_type_from_string(const char *s)
   return UNDEFINED;
 }
 
-FieldMeta::FieldMeta() : attr_type_(AttrType::UNDEFINED), attr_offset_(-1), attr_len_(0), visible_(false)
+FieldMeta::FieldMeta() : attr_type_(AttrType::UNDEFINED), attr_offset_(-1),attr_len_(0), visible_(false)
 {}
 
 RC FieldMeta::init(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible)
@@ -70,6 +70,7 @@ RC FieldMeta::init(const char *name, AttrType attr_type, int attr_offset, int at
   LOG_INFO("Init a field with name=%s", name);
   return RC::SUCCESS;
 }
+
 
 const char *FieldMeta::name() const
 {
@@ -156,5 +157,5 @@ RC FieldMeta::from_json(const Json::Value &json_value, FieldMeta &field)
   int offset = offset_value.asInt();
   int len = len_value.asInt();
   bool visible = visible_value.asBool();
-  return field.init(name, type, offset, len, visible);
+  return field.init(name, type, offset,len, visible);
 }

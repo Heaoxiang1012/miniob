@@ -21,10 +21,9 @@ See the Mulan PSL v2 for more details. */
 RC PredicateOperator::open()
 {
   if (children_.size() != 1) {
-    LOG_WARN("predicate operator must has one child");
-    return RC::INTERNAL;
-  }
-
+    LOG_WARN("predicate operator has %d children",children_.size());
+    return RC::UNIMPLENMENT ;
+  } 
   return children_[0]->open();
 }
 
@@ -32,7 +31,6 @@ RC PredicateOperator::next()
 {
   RC rc = RC::SUCCESS;
   Operator *oper = children_[0];
-  
   while (RC::SUCCESS == (rc = oper->next())) {
     Tuple *tuple = oper->current_tuple();
     if (nullptr == tuple) {
@@ -40,7 +38,6 @@ RC PredicateOperator::next()
       LOG_WARN("failed to get tuple from operator");
       break;
     }
-
     if (do_predicate(static_cast<RowTuple &>(*tuple))) {
       return rc;
     }

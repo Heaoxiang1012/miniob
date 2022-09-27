@@ -212,7 +212,7 @@ public:
     }
 
     const TupleCellSpec *spec = speces_[index];
-    LOG_WARN("spec alias : %s", spec->alias());
+    // LOG_WARN("spec alias : %s", spec->alias());
     return spec->expression()->get_value(*tuple_, cell);
   }
 
@@ -228,6 +228,8 @@ public:
     spec = speces_[index];
     return RC::SUCCESS;
   }
+  
+
 private:
   std::vector<TupleCellSpec *> speces_;
   Tuple *tuple_ = nullptr;

@@ -25,3 +25,7 @@ RC ValueExpr::get_value(const Tuple &tuple, TupleCell & cell) const
   cell = tuple_cell_;
   return RC::SUCCESS;
 }
+const char *ValueExpr::get_tuple_value() const 
+{
+  return tuple_cell_.data();
+}

@@ -94,15 +94,15 @@ public:
   virtual ~ValueExpr() = default;
 
   RC get_value(const Tuple &tuple, TupleCell & cell) const override;
-  ExprType type() const override
-  {
-    return ExprType::VALUE;
-  }
+  const char *get_tuple_value() const ;
+  ExprType type() const override { return ExprType::VALUE; }
 
   void get_tuple_cell(TupleCell &cell) const {
     cell = tuple_cell_;
   }
 
-private:
+  const char *get_tuple_cell_data() const { return tuple_cell_.data(); }
+
+ private:
   TupleCell tuple_cell_;
 };

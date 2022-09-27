@@ -51,6 +51,17 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 
+void dfs(std::vector<std::vector<std::string>> &tables_record,int count,std::vector<std::string> &ans_record,std::string temp){
+  std::vector<std::string> current = tables_record[count];
+  for(auto str : current){
+    if(count + 1 < tables_record.size()){
+      dfs(tables_record, count + 1, ans_record, temp  +str+ "|");
+    } else {
+      ans_record.push_back(temp  + str );
+    }
+  }
+}
+
 //RC create_selection_executor(
 //   Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node);
 
@@ -221,7 +232,7 @@ void end_trx_if_need(Session *session, Trx *trx, bool all_right)
   }
 }
 
-void print_tuple_header(std::ostream &os, const ProjectOperator &oper)
+void print_tuple_header(std::ostream &os, const ProjectOperator &oper,bool is_mul=false)
 {
   const int cell_num = oper.tuple_cell_num();
   const TupleCellSpec *cell_spec = nullptr;
@@ -230,7 +241,6 @@ void print_tuple_header(std::ostream &os, const ProjectOperator &oper)
     if (i != 0) {
       os << " | ";
     }
-
     if (cell_spec->alias()) {
       os << cell_spec->alias();
     }
@@ -254,7 +264,7 @@ std::string tuple_to_string(const Tuple &tuple)
       break;
     }
     if (!first_field) {
-      str += " | ";
+      str += " ";
     } else {
       first_field = false;
     }
@@ -423,56 +433,319 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   std::stringstream ss;
 
   if (select_stmt->tables().size() != 1) {
-    // LOG_WARN("select more than 1 tables is not supported");
-    // rc = RC::UNIMPLENMENT;
-    // return rc;
-    std::vector<std::string> tuples_to_string;
+    // 1.读出每张表的所有记录，并按string存放
+    // 2.按条件删;
+
+    for (int i = 0; i < select_stmt->query_fields().size() ; ++i) {
+      const Field &field = select_stmt->query_fields()[i];
+      if(i != 0){
+          ss << " | ";
+        }
+      ss << field.table_name();
+      ss << '.';
+      ss << field.field_name();
+    }
+    ss << '\n';
+    auto tables_size = select_stmt->tables().size();
     
-    for (int i = select_stmt->tables().size() -1 ; i >= 0 ; --i) {
-      // Operator *scan_oper = try_to_create_index_scan_operator(nullptr); FIX BUG TODO 
+    std::vector<std::vector<std::string>> table_records;
+    std::vector<std::vector<char *>> all_table_records_data;
+
+    for (int i = tables_size - 1; i >=0 ; --i) {
       Operator *scan_oper = nullptr;
       if (nullptr == scan_oper) {
         scan_oper = new TableScanOperator(select_stmt->tables()[i]);
       }
-      PredicateOperator pred_oper(nullptr); // 直接放条件，条件可以再多表中比较，支持 但是改起来特别复杂 还是先用nullptr
+      PredicateOperator pred_oper(nullptr);//select_stmt->filter_stmt()
       pred_oper.add_child(scan_oper);
       ProjectOperator project_oper;
       project_oper.add_child(&pred_oper);
+      
       auto table_meta = (select_stmt->tables()[i])->table_meta();
-
       for (int j = table_meta.sys_field_num() ; j < table_meta.field_metas()->size();++j) {
         const FieldMeta *field_meta = table_meta.field(j);
-        project_oper.add_projection(select_stmt->tables()[i], field_meta);
+        project_oper.add_projection(select_stmt->tables()[i], field_meta); //read all records
       }
-      // for (const Field &field : select_stmt->query_fields()) {
-      //   if(strcmp(field.table_name(),(select_stmt->tables()[i])->name()))
-      //   {
-      //     project_oper.add_projection(field.table(), field.meta());
-      //   }
-      // }
+
       rc = project_oper.open();
-      while((rc = project_oper.next()) == RC::SUCCESS){
+      std::vector<std::string> _temp;
+      std::vector<char *> _temp_record;
+      while ((rc = project_oper.next()) == RC::SUCCESS) {
         Tuple *tuple = project_oper.current_tuple();  // projectTuple
         if (nullptr == tuple) {
           rc = RC::INTERNAL;
           LOG_WARN("failed to get current record. rc=%s", strrc(rc));
           break;
         }
-        tuples_to_string.push_back(tuple_to_string(*tuple)); //
+        _temp.push_back(tuple_to_string(*tuple));
+        // read all record;
+      }
+      table_records.push_back(_temp);
+      all_table_records_data.push_back(_temp_record);
+    }
+
+    // std::vector<int> table_offset(tables_size);
+    // for (int i = tables_size - 1; i >= 0; --i) {
+    //   if (i == tables_size - 1) table_offset[i] = 0;
+    //   else {
+    //     auto offset = (select_stmt->tables()[i])->table_meta().record_size_without_sys();
+    //     table_offset[i] = table_offset[i+1] + offset;
+    //   }
+    // }
+
+    
+
+    // for (int i = table_offset.size() - 1; i >= 0; --i) {
+    //   std::cout << table_offset[i] << std::endl;
+    // }
+
+    // for (int i = 0; i < table_records.size();++i) {
+    //   for (int j = 0; j < table_records[i].size();++j) {
+    //     std::cout << table_records[i][j] << std::endl;
+    //   }
+    // }
+
+    std::vector<std::string> total_record;
+    int tables_record_size = table_records.size();
+    dfs(table_records, 0, total_record, "");
+
+    CompositeConditionFilter compositeConditionFilter;
+    // std::vector<DefaultConditionFilter*> defaultConditionFilters;
+    const ConditionFilter **defaultConditionFilters = new const ConditionFilter*[select_stmt->filter_stmt()->filter_units().size()];
+
+    int _temp = 0;
+    for (const FilterUnit *filter_unit :
+         select_stmt->filter_stmt()->filter_units()) {
+      DefaultConditionFilter *condition_filter = new DefaultConditionFilter();
+      ConDesc left, right;
+      AttrType attrtype = AttrType::UNDEFINED;
+      if (FieldExpr *p_left = dynamic_cast<FieldExpr *>(filter_unit->left())) {
+        left.is_attr = true;
+
+        int index = 0;
+        while(index < select_stmt->tables().size() && strcmp(p_left->field().table_name(),(select_stmt->tables()[index])->name()) != 0)
+          index++;
+        
+        auto table_metas = (select_stmt->tables()[index])->table_meta();
+        int attr_index = table_metas.sys_field_num();
+        while (attr_index < table_metas.field_num() && strcmp(p_left->field().field_name(), (table_metas.field(attr_index))->name()) != 0) 
+          attr_index++;
+
+        index = select_stmt->tables().size() - index - 1;
+        attr_index = attr_index - table_metas.sys_field_num(); // 减去sys field num 才是真实的 第几个 空格前的数据（字符串）
+
+        left.attr_length = index; //表示找到第几个'|' 
+        left.attr_offset = attr_index; // 表示找到第几个空格 第0个空格表示第1个attr
+        attrtype = p_left->field().attr_type();
+        
+    
+
+      } else if (ValueExpr *p_left_v =
+                     dynamic_cast<ValueExpr *>(filter_unit->left())) {
+        // left.value = (void *)(p_left_v->get_tuple_cell_data());
+        left.value = p_left_v->get_tuple_value();
+      }
+
+      if(FieldExpr *p_right = dynamic_cast<FieldExpr*>(filter_unit->right())){
+        right.is_attr = true;
+        int index = 0;
+        while(index < select_stmt->tables().size() && strcmp(p_right->field().table_name(),(select_stmt->tables()[index])->name()) != 0)
+          index++;
+        
+        auto table_metas = (select_stmt->tables()[index])->table_meta();
+        int attr_index = table_metas.sys_field_num();
+
+        while (attr_index < table_metas.field_num() && strcmp(p_right->field().field_name(), (table_metas.field(attr_index))->name()) != 0) 
+          attr_index++;
+
+        index = select_stmt->tables().size() - index - 1;
+        attr_index = attr_index - table_metas.sys_field_num(); // 减去sys field num 才是真实的 第几个 空格前的数据（字符串）
+
+        right.attr_length = index; //表示找到第几个'|' 
+        right.attr_offset = attr_index; // 表示找到第几个空格 第0个空格表示第1个attr
+        
+        // LOG_WARN("right.attr_length = %d,right.attr_offset = %d", index,
+        //          attr_index);
+        attrtype = p_right->field().attr_type();
+      } else if(ValueExpr *p_right_v = dynamic_cast<ValueExpr *>(filter_unit->right())){
+          right.value = p_right_v->get_tuple_value();
+      }
+      condition_filter->init(left, right, attrtype, filter_unit->comp()); // 是否要用CHARS
+      // defaultConditionFilters.push_back(condition_filter);
+      defaultConditionFilters[_temp++] = condition_filter;
+    }
+
+    
+    compositeConditionFilter.init(
+        defaultConditionFilters,
+        select_stmt->filter_stmt()->filter_units().size());
+    // LOG_WARN("composite filter init finish .");
+
+    std::vector<std::string> ans_records;
+    for (auto record_string : total_record) {
+      
+      if (compositeConditionFilter.filter(record_string)) {
+        ans_records.push_back(record_string);
       }
     }
 
-    // output tuple head :
-    for (int i = 0; i < select_stmt->query_fields().size() ; ++i) {
+    // do output ;
+    std::vector<std::pair<int, int>> indice;
+
+    for (int i = 0; i < select_stmt->query_fields().size(); ++i) {
       const Field &field = select_stmt->query_fields()[i];
-      if(i != 0){
-        ss << " | ";
-      }
-      ss << field.table_name();
-      ss << '.';
-      ss << field.field_name();
+      std::vector<int> _index;
+
+      int table_index = 0;
+      while(table_index < select_stmt->tables().size() && strcmp(field.table_name(),(select_stmt->tables()[table_index])->name()) != 0)
+          table_index++;
+        
+      auto table_metas = (select_stmt->tables()[table_index])->table_meta();
+      int attr_index = table_metas.sys_field_num();
+      while (attr_index < table_metas.field_num() && strcmp(field.field_name(), (table_metas.field(attr_index))->name()) != 0) 
+        attr_index++;
+
+      table_index = select_stmt->tables().size() - table_index - 1;
+      attr_index = attr_index - table_metas.sys_field_num(); // 减去sys field num 才是真实的 第几个 空格前的数据（字符串）
+
+      indice.push_back(std::make_pair(table_index,attr_index));
     }
-    ss << '\n';
+
+    // for(auto it:indice){
+    //   LOG_WARN("TABLE_OFFSET : %d , ATTR_OFFSET : %d", it.first, it.second);
+    // }
+    // LOG_WARN("RECORDS SIZE : %d", ans_records.size());
+
+    std::vector<std::string> output_records;
+    for (auto item : ans_records) {
+      std::string output_record = "";
+      int end_indice = 0;
+      for (auto it : indice) {
+        int index = 0;
+        int table_count = 0;
+        while(index < item.size() && table_count != it.first)
+        {
+          if (item[index] == '|') table_count++;
+          index++;
+        }
+        int attr_cout = 0;
+        while(index < item.size() && attr_cout != it.second)
+        {
+          if (item[index] == ' ') attr_cout++;
+          index++;
+        }
+
+        while(index < item.size() && item[index] != ' ' && item[index] != '|')
+        {
+          output_record += item[index];
+          index++;
+        }
+
+        if(end_indice != indice.size() - 1) 
+          output_record += " | ";
+        end_indice++;
+      }
+      output_records.push_back(output_record);
+    }
+
+    for (auto item : output_records) {
+      ss << item; 
+      ss << '\n';
+    }
+    
+    // for (auto item : ans_records) {
+    //   ss << item;
+    // }
+
+    // LOG_WARN("select more than 1 tables is not supported");
+    // rc = RC::UNIMPLENMENT;
+    // return rc;
+
+    // Operator *scan_oper = try_to_create_index_scan_operator(nullptr); FIX BUG TODO 
+    
+    // for (const Field &field : select_stmt->query_fields()) {  
+    //     project_oper.add_projection(field.table(), field.meta());
+    // }
+
+    // rc = project_oper.open();
+    // if (rc != RC::SUCCESS) {
+    //   LOG_WARN("failed to open operator");
+    //   return rc;
+    // }
+
+    // // print_tuple_header(ss, project_oper);
+    // // output tuple head : (冗余度高)
+
+    // while ((rc = project_oper.next()) == RC::SUCCESS) {
+
+    //   Tuple *tuple = project_oper.current_tuple();  // 
+
+    //   if (nullptr == tuple) {
+    //     rc = RC::INTERNAL;
+    //     LOG_WARN("failed to get current record. rc=%s", strrc(rc));
+    //     break;
+    //   }
+
+    //   tuple_to_string(ss, *tuple);
+    //   ss << std::endl;
+    // }
+
+    // if (rc != RC::RECORD_EOF) {
+    //   LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
+    //   project_oper.close();
+    // } else {
+    //   rc = project_oper.close();
+    // }
+
+
+    // for (int i = select_stmt->tables().size() -1 ; i >= 0 ; --i) {
+      
+      
+      
+    //   auto table_meta = (select_stmt->tables()[i])->table_meta();
+
+    //   for (int j = table_meta.sys_field_num() ; j < table_meta.field_metas()->size();++j) {
+    //     const FieldMeta *field_meta = table_meta.field(j);
+    //     project_oper.add_projection(select_stmt->tables()[i], field_meta);
+    //   }
+    //   // for (const Field &field : select_stmt->query_fields()) {
+    //   //   if(strcmp(field.table_name(),(select_stmt->tables()[i])->name()))
+    //   //   {
+    //   //     project_oper.add_projection(field.table(), field.meta());
+    //   //   }
+    //   // }
+    //   rc = project_oper.open();
+    //   std::vector<std::string> _temp;
+    //   while ((rc = project_oper.next()) == RC::SUCCESS) {
+    //     Tuple *tuple = project_oper.current_tuple();  // projectTuple
+    //     if (nullptr == tuple) {
+    //       rc = RC::INTERNAL;
+    //       LOG_WARN("failed to get current record. rc=%s", strrc(rc));
+    //       break;
+    //     }
+    //     _temp.push_back(tuple_to_string(*tuple)); //
+    //   }
+    //   tuples_to_string.push_back(_temp);
+    // }
+
+    
+    // if(select_stmt->filter_stmt()->filter_units().size() == 0){
+    //   size_t max_len = 0;
+    //   for(auto item:tuples_to_string){
+    //     max_len = std::max(item.size(), max_len);
+    //   }
+    //   for (size_t j = 0; j < max_len;++j) {
+    //     for (size_t k = 0; k < tuples_to_string.size();++k) {
+    //       if (tuples_to_string[k].size() < j){
+
+    //       } 
+    //     }
+    //   }
+    //   ss << '\n';
+    // }else {
+    //   // TODO pick with condition ;
+
+    // }
 
     // get all attr in all table ;
     // LOG_WARN("[tuples size : %d] ", tuples_to_string.size());

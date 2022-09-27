@@ -82,15 +82,15 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
 
   for (int i = 0; i < field_num; i++) {
     const AttrInfo &attr_info = attributes[i];
-    rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset, attr_info.length, true);
+    rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset,attr_info.length, true);
+    // rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset,attr_info.length, true);
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to init field meta. table name=%s, field name: %s", name, attr_info.name);
       return rc;
     }
-
     field_offset += attr_info.length;
   }
-
+  
   record_size_ = field_offset;
 
   name_ = name;
@@ -196,6 +196,16 @@ int TableMeta::index_num() const
 int TableMeta::record_size() const
 {
   return record_size_;
+}
+
+int TableMeta::record_size_without_sys()const
+{
+  int record_size_without_sys = 0;
+  for (int i = sys_field_num(); i < field_num(); ++i) {
+    record_size_without_sys += fields_[i].len();
+  }
+
+  return record_size_without_sys;
 }
 
 int TableMeta::serialize(std::ostream &ss) const

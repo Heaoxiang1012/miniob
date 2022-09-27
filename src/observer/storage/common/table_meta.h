@@ -45,6 +45,7 @@ public:
   const FieldMeta *field(const char *name) const;
   const FieldMeta *find_field_by_offset(int offset) const;
   const std::vector<FieldMeta> *field_metas() const { return &fields_; }
+  int table_len() const {}
   int field_num() const; // sys field included
   int sys_field_num() const;
 
@@ -54,8 +55,9 @@ public:
   int index_num() const;
 
   int record_size() const;
+  int record_size_without_sys() const;
 
-public:
+ public:
   int serialize(std::ostream &os) const override;
   int deserialize(std::istream &is) override;
   int get_serial_size() const override;

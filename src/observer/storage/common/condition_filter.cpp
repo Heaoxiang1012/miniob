@@ -20,6 +20,26 @@ See the Mulan PSL v2 for more details. */
 
 using namespace common;
 
+void read_value(std::string &get,const std::string &str,int table_offset,int attr_offset)
+{
+  int index = 0;
+  
+  int read_table_count = 0;
+  while (read_table_count != table_offset){
+    if (str[index] == '|') read_table_count++;
+    index++;
+  }
+  int read_attr_count = 0;
+  while (read_attr_count != attr_offset){
+    if (str[index] == ' ') read_attr_count++;
+    index++;
+  }
+
+  while (str[index] != ' ' && str[index] != '|') 
+    get += str[index++];
+
+}
+
 ConditionFilter::~ConditionFilter()
 {}
 
@@ -40,7 +60,7 @@ DefaultConditionFilter::~DefaultConditionFilter()
 
 RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op)
 {
-  if (attr_type < CHARS || attr_type > FLOATS) {
+  if (attr_type < CHARS || attr_type > DATES) {
     LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
     return RC::INVALID_ARGUMENT;
   }
@@ -81,7 +101,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     type_left = field_left->type();
   } else {
     left.is_attr = false;
-    left.value = condition.left_value.data;  // 校验type 或者转换类型
+    left.value = (const char *)condition.left_value.data;  // 校验type 或者转换类型
     type_left = condition.left_value.type;
 
     left.attr_length = 0;
@@ -102,7 +122,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     right.value = nullptr;
   } else {
     right.is_attr = false;
-    right.value = condition.right_value.data;
+    right.value = (const char *)condition.right_value.data;
     type_right = condition.right_value.type;
 
     right.attr_length = 0;
@@ -123,39 +143,75 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   return init(left, right, type_left, condition.comp);
 }
 
-bool DefaultConditionFilter::filter(const Record &rec) const
+bool DefaultConditionFilter::filter(const std::string &rec) const
 {
-  char *left_value = nullptr;
-  char *right_value = nullptr;
+  // const char *left_value_ = nullptr;
+  // const char *right_value_ = nullptr;
 
-  if (left_.is_attr) {  // value
-    left_value = (char *)(rec.data() + left_.attr_offset);
-  } else {
-    left_value = (char *)left_.value;
+  std::string left_value = "";
+  std::string right_value = "";
+
+  if (left_.is_attr) {
+    read_value(left_value, rec, left_.attr_length, left_.attr_offset);
+    //TODO left_value ->转成对应类型的char* 
+    //不能直接.cstr()
+    //要直接atoi 或者atof 然后再转成char*
+  } 
+  else {
+    left_value = left_.value;
   }
 
-  if (right_.is_attr) {
-    right_value = (char *)(rec.data() + right_.attr_offset);
-  } else {
-    right_value = (char *)right_.value;
+  if(right_.is_attr){
+    read_value(right_value, rec, right_.attr_length, right_.attr_offset);
+  } 
+  else {
+    right_value = right_.value;
   }
 
   int cmp_result = 0;
   switch (attr_type_) {
     case CHARS: {  // 字符串都是定长的，直接比较
       // 按照C字符串风格来定
-      cmp_result = strcmp(left_value, right_value);
+      cmp_result = strcmp(left_value.c_str(), right_value.c_str());
+      LOG_WARN("cmp_results : %d", cmp_result);
     } break;
     case INTS: {
       // 没有考虑大小端问题
       // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
-      int left = *(int *)left_value;
-      int right = *(int *)right_value;
-      cmp_result = left - right;
+      int left,right ;
+      if (left_.is_attr) left = std::atoi(left_value.c_str());
+      else
+        left = *(int *)left_.value;
+
+      if (right_.is_attr) right = std::atoi(right_value.c_str());
+      else
+        right = *(int *)right_.value;
+      
+      LOG_WARN("left : %d , right : %d", left, right);
+      cmp_result = (double)left - right;
     } break;
     case FLOATS: {
-      float left = *(float *)left_value;
-      float right = *(float *)right_value;
+      float left,right ;
+      if (left_.is_attr) left = std::atof(left_value.c_str());
+      else
+        left = *(float *)left_.value;
+
+      if (right_.is_attr) right = std::atof(right_value.c_str());
+      else
+        right = *(float *)right_.value;
+
+      cmp_result = (int)(left - right);
+    } break;
+    case DATES:{
+      int left,right ;
+      if (left_.is_attr) left = std::atoi(left_value.c_str());
+      else
+        left = *(int *)left_.value;
+
+      if (right_.is_attr) right = std::atoi(right_value.c_str());
+      else
+        right = *(int *)right_.value;
+        
       cmp_result = (int)(left - right);
     } break;
     default: {
@@ -182,6 +238,79 @@ bool DefaultConditionFilter::filter(const Record &rec) const
 
   LOG_PANIC("Never should print this.");
   return cmp_result;  // should not go here
+  
+}
+
+bool DefaultConditionFilter::filter(const Record &rec) const //TODO
+{
+  char *left_value = nullptr;
+  char *right_value = nullptr;
+
+  // if (left_.is_attr) {  // value
+    
+  //   // LOG_WARN(" left_.attr_offset :%d", left_.attr_offset);
+  //   // left_value = (char *)(rec.data() + left_.attr_offset);
+  //   // LOG_WARN("rec len : %d", strlen(rec.data()));
+  //   // LOG_WARN("rec.data .. %s", rec.data());
+  // } else {
+  //   left_value = (char *)left_.value;
+  // }
+
+  // if (right_.is_attr) {
+  //   LOG_WARN(" right_.attr_offset :%d", right_.attr_offset);
+  //   right_value = (char *)(rec.data() + right_.attr_offset);
+  // } else {
+  //   right_value = (char *)right_.value;
+  // }
+
+  // int cmp_result = 0;
+  // switch (attr_type_) {
+  //   case CHARS: {  // 字符串都是定长的，直接比较
+  //     // 按照C字符串风格来定
+  //     LOG_WARN("left_value : %s,right_value:%s", left_value, right_value);
+  //     cmp_result = strcmp(left_value, right_value);
+  //   } break;
+  //   case INTS: {
+  //     // 没有考虑大小端问题
+  //     // 对int和float，要考虑字节对齐问题,有些平台下直接转换可能会跪
+  //     int left = *(int *)left_value;
+  //     int right = *(int *)right_value;
+  //     cmp_result = left - right;
+  //   } break;
+  //   case FLOATS: {
+  //     float left = *(float *)left_value;
+  //     float right = *(float *)right_value;
+  //     cmp_result = (int)(left - right);
+  //   } break;
+  //   case DATES:{
+  //     int32_t left = *(int32_t *)left_value;
+  //     int32_t right = *(int32_t *)right_value;
+  //     cmp_result = (int32_t)(left - right);
+  //   } break;
+  //   default: {
+  //   }
+  // }
+
+  // switch (comp_op_) {
+  //   case EQUAL_TO:
+  //     return 0 == cmp_result;
+  //   case LESS_EQUAL:
+  //     return cmp_result <= 0;
+  //   case NOT_EQUAL:
+  //     return cmp_result != 0;
+  //   case LESS_THAN:
+  //     return cmp_result < 0;
+  //   case GREAT_EQUAL:
+  //     return cmp_result >= 0;
+  //   case GREAT_THAN:
+  //     return cmp_result > 0;
+
+  //   default:
+  //     break;
+  // }
+
+  // LOG_PANIC("Never should print this.");
+  // return cmp_result;  // should not go here
 }
 
 CompositeConditionFilter::~CompositeConditionFilter()
@@ -199,6 +328,7 @@ RC CompositeConditionFilter::init(const ConditionFilter *filters[], int filter_n
   memory_owner_ = own_memory;
   return RC::SUCCESS;
 }
+
 RC CompositeConditionFilter::init(const ConditionFilter *filters[], int filter_num)
 {
   return init(filters, filter_num, false);
@@ -231,6 +361,16 @@ RC CompositeConditionFilter::init(Table &table, const Condition *conditions, int
     condition_filters[i] = default_condition_filter;
   }
   return init((const ConditionFilter **)condition_filters, condition_num, true);
+}
+
+bool CompositeConditionFilter::filter(const std::string &rec) const
+{
+  for (int i = 0; i < filter_num_; i++) {
+    if (!filters_[i]->filter(rec)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool CompositeConditionFilter::filter(const Record &rec) const
