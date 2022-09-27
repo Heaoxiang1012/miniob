@@ -305,23 +305,31 @@ RC Table::insert_record(Trx *trx, Record *record)
 }
 RC Table::insert_record(Trx *trx, int value_num, const Value *values)
 {
+  RC rc = RC::SUCCESS;
   if (value_num <= 0 || nullptr == values) {
     LOG_ERROR("Invalid argument. table name: %s, value num=%d, values=%p", name(), value_num, values);
     return RC::INVALID_ARGUMENT;
   }
+  int field_num = (table_meta_.field_num() - table_meta_.sys_field_num());
+  int insert_num = value_num / field_num;
+  char **record_data = new char *[insert_num];
 
-  char *record_data;
-
-  RC rc = make_record(value_num, values, record_data);
-  if (rc != RC::SUCCESS) {
-    LOG_ERROR("Failed to create a record. rc=%d:%s", rc, strrc(rc));
-    return rc;
+  for (int i = 0; i < insert_num; ++i) {
+    int offset = i * field_num;
+    RC rc = make_record(field_num, values, record_data[i], offset);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to create a record. rc=%d:%s", rc, strrc(rc));
+      return rc;
+    }
+    Record record;
+    record.set_data(record_data[i]);
+    rc = insert_record(trx, &record);
   }
-
-  Record record;
-  record.set_data(record_data);
+  
   // record.valid = true;
-  rc = insert_record(trx, &record);
+  for (int i = 0; i < insert_num; ++i) {
+    delete[] record_data[i];
+  }
   delete[] record_data;
   return rc;
 }
@@ -404,18 +412,19 @@ const TableMeta &Table::table_meta() const
   return table_meta_;
 }
 
-RC Table::make_record(int value_num, const Value *values, char *&record_out)
+RC Table::make_record(int value_num, const Value *values, char *&record_out,int offset )
 {
-  // 检查字段类型是否一致
   if (value_num + table_meta_.sys_field_num() != table_meta_.field_num()) {
-    LOG_WARN("Input values don't match the table's schema, table name:%s", table_meta_.name());
+    LOG_WARN("Input values don't match the table's schema, table name:%s",
+             table_meta_.name());
     return RC::SCHEMA_FIELD_MISSING;
   }
 
   const int normal_field_start_index = table_meta_.sys_field_num();
+  
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
-    const Value &value = values[i];
+    const Value &value = values[offset + i];
     if (field->type() != value.type) {
       LOG_ERROR("Invalid value type. table name =%s, field name=%s, type=%d, but given=%d",
           table_meta_.name(),
@@ -429,10 +438,10 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
   // 复制所有字段的值
   int record_size = table_meta_.record_size();
   char *record = new char[record_size];
-
+  
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
-    const Value &value = values[i];
+    const Value &value = values[offset + i];
     size_t copy_len = field->len();
     if (field->type() == CHARS) {
       const size_t data_len = strlen((const char *)value.data);

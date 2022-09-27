@@ -115,7 +115,7 @@ private:
 private:
   RC init_record_handler(const char *base_dir);
   RC remove_record_handler();
-  RC make_record(int value_num, const Value *values, char *&record_out);
+  RC make_record(int value_num, const Value *values, char *&record_out,int offset = 0);
   RC update_a_col_record(char *record, const char* attribute_name,const int value_num, const Value value);
 
  public:

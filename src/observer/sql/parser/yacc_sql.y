@@ -283,7 +283,7 @@ ID_get:
 
 	
 insert:				/*insert   语句的语法解析树*/
-    INSERT INTO ID VALUES LBRACE value value_list RBRACE SEMICOLON 
+    INSERT INTO ID VALUES LBRACE value value_list RBRACE insert_list SEMICOLON 
 		{
 			// CONTEXT->values[CONTEXT->value_length++] = *$6;
 
@@ -299,6 +299,9 @@ insert:				/*insert   语句的语法解析树*/
       CONTEXT->value_length=0;
     }
 
+insert_list:
+  | COMMA LBRACE value value_list RBRACE insert_list
+  ;
 value_list:
     /* empty */
     | COMMA value value_list  { 
@@ -346,7 +349,6 @@ select:				/*  select 语句的语法解析树*/
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
-
 			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
 
 			CONTEXT->ssql->flag=SCF_SELECT;//"select";
