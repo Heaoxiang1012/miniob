@@ -175,6 +175,9 @@ void ExecuteStage::handle_request(common::StageEvent *event)
     case SCF_CREATE_INDEX: {
       do_create_index(sql_event);
     } break;
+    case SCF_CREATE_UNIQUE_INDEX:{
+      do_create_index(sql_event);
+    } break;
     case SCF_SHOW_TABLES: {
       do_show_tables(sql_event);
     } break;
@@ -367,7 +370,7 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
   // LOG_WARN("[BUG]: right_value_expr , value : %s,%d",value.data(),value.attr_type());
 
   int32_t right_value_string_to_int32 = -1;
-  string_to_date(value.data(),right_value_string_to_int32);
+  string_to_date(value.data(),right_value_string_to_int32); //TODO
 
   value.set_data((char *)&right_value_string_to_int32);
   value.set_type(AttrType::DATES);
@@ -864,7 +867,7 @@ RC ExecuteStage::do_create_index(SQLStageEvent *sql_event)
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
-  RC rc = table->create_index(nullptr, create_index.index_name, create_index.attribute_name);
+  RC rc = table->create_index(nullptr, create_index.index_name, create_index.attribute_name,create_index.unique);
   sql_event->session_event()->set_response(rc == RC::SUCCESS ? "SUCCESS\n" : "FAILURE\n");
   return rc;
 }

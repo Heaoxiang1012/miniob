@@ -74,6 +74,7 @@ ParserContext *get_context(yyscan_t scanner)
         INSERT
         DELETE
         UPDATE
+        UNIQUE
         LBRACE
         RBRACE
         COMMA
@@ -147,6 +148,7 @@ command:
 	| show_tables
 	| desc_table
 	| create_index	
+  | create_unique_index
 	| drop_index
 	| sync
 	| begin
@@ -214,9 +216,16 @@ create_index:		/*create index 语句的语法解析树*/
     CREATE INDEX ID ON ID LBRACE ID RBRACE SEMICOLON 
 		{
 			CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
-			create_index_init(&CONTEXT->ssql->sstr.create_index, $3, $5, $7);
+			create_index_init(&CONTEXT->ssql->sstr.create_index, $3, $5, $7,false);
 		}
     ;
+
+create_unique_index:
+    CREATE UNIQUE INDEX ID ON ID LBRACE ID RBRACE SEMICOLON 
+    {
+      CONTEXT->ssql->flag = SCF_CREATE_UNIQUE_INDEX;//"create_index";
+			create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, $8,true);
+    }
 
 drop_index:			/*drop index 语句的语法解析树*/
     DROP INDEX ID  SEMICOLON 

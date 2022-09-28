@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #define MAX_NUM 20
 #define MAX_REL_NAME 20
@@ -138,6 +139,7 @@ typedef struct {
   char *index_name;      // Index name
   char *relation_name;   // Relation name
   char *attribute_name;  // Attribute name
+  bool unique;
 } CreateIndex;
 
 // struct of  drop_index
@@ -178,6 +180,7 @@ enum SqlCommandFlag {
   SCF_CREATE_TABLE,
   SCF_DROP_TABLE,
   SCF_CREATE_INDEX,
+  SCF_CREATE_UNIQUE_INDEX,
   SCF_DROP_INDEX,
   SCF_SYNC,
   SCF_SHOW_TABLES,
@@ -242,7 +245,7 @@ void drop_table_init(DropTable *drop_table, const char *relation_name);
 void drop_table_destroy(DropTable *drop_table);
 
 void create_index_init(
-    CreateIndex *create_index, const char *index_name, const char *relation_name, const char *attr_name);
+    CreateIndex *create_index, const char *index_name, const char *relation_name, const char *attr_name,bool unique);
 void create_index_destroy(CreateIndex *create_index);
 
 void drop_index_init(DropIndex *drop_index, const char *index_name);

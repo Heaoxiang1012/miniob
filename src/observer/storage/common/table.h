@@ -72,7 +72,7 @@ public:
   RC scan_record(Trx *trx, ConditionFilter *filter, int limit, void *context,
       void (*record_reader)(const char *data, void *context));
 
-  RC create_index(Trx *trx, const char *index_name, const char *attribute_name);
+  RC create_index(Trx *trx, const char *index_name, const char *attribute_name,bool unique);
 
   RC get_record_scanner(RecordFileScanner &scanner);
 
@@ -121,6 +121,7 @@ private:
  public:
   Index *find_index(const char *index_name) const;
   Index *find_index_by_field(const char *field_name) const;
+  bool  is_unique(const Value&v , const char *field_name);
 
 private:
   std::string base_dir_;
@@ -128,6 +129,7 @@ private:
   DiskBufferPool *data_buffer_pool_ = nullptr;  /// 数据文件关联的buffer pool
   RecordFileHandler *record_handler_ = nullptr;  /// 记录操作
   std::vector<Index *> indexes_;
+  std::vector<std::string> unique_index_field_name_;
 };
 
 #endif  // __OBSERVER_STORAGE_COMMON_TABLE_H__

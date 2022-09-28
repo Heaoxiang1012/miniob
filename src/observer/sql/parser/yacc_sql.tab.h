@@ -62,43 +62,44 @@ extern int yydebug;
     INSERT = 268,
     DELETE = 269,
     UPDATE = 270,
-    LBRACE = 271,
-    RBRACE = 272,
-    COMMA = 273,
-    TRX_BEGIN = 274,
-    TRX_COMMIT = 275,
-    TRX_ROLLBACK = 276,
-    INT_T = 277,
-    STRING_T = 278,
-    FLOAT_T = 279,
-    DATE_T = 280,
-    HELP = 281,
-    EXIT = 282,
-    DOT = 283,
-    INTO = 284,
-    VALUES = 285,
-    FROM = 286,
-    WHERE = 287,
-    AND = 288,
-    SET = 289,
-    ON = 290,
-    LOAD = 291,
-    DATA = 292,
-    INFILE = 293,
-    EQ = 294,
-    LT = 295,
-    GT = 296,
-    LE = 297,
-    GE = 298,
-    NE = 299,
-    NUMBER = 300,
-    FLOAT = 301,
-    ID = 302,
-    PATH = 303,
-    SSS = 304,
-    DATE = 305,
-    STAR = 306,
-    STRING_V = 307
+    UNIQUE = 271,
+    LBRACE = 272,
+    RBRACE = 273,
+    COMMA = 274,
+    TRX_BEGIN = 275,
+    TRX_COMMIT = 276,
+    TRX_ROLLBACK = 277,
+    INT_T = 278,
+    STRING_T = 279,
+    FLOAT_T = 280,
+    DATE_T = 281,
+    HELP = 282,
+    EXIT = 283,
+    DOT = 284,
+    INTO = 285,
+    VALUES = 286,
+    FROM = 287,
+    WHERE = 288,
+    AND = 289,
+    SET = 290,
+    ON = 291,
+    LOAD = 292,
+    DATA = 293,
+    INFILE = 294,
+    EQ = 295,
+    LT = 296,
+    GT = 297,
+    LE = 298,
+    GE = 299,
+    NE = 300,
+    NUMBER = 301,
+    FLOAT = 302,
+    ID = 303,
+    PATH = 304,
+    SSS = 305,
+    DATE = 306,
+    STAR = 307,
+    STRING_V = 308
   };
 #endif
 /* Tokens.  */
@@ -115,49 +116,50 @@ extern int yydebug;
 #define INSERT 268
 #define DELETE 269
 #define UPDATE 270
-#define LBRACE 271
-#define RBRACE 272
-#define COMMA 273
-#define TRX_BEGIN 274
-#define TRX_COMMIT 275
-#define TRX_ROLLBACK 276
-#define INT_T 277
-#define STRING_T 278
-#define FLOAT_T 279
-#define DATE_T 280
-#define HELP 281
-#define EXIT 282
-#define DOT 283
-#define INTO 284
-#define VALUES 285
-#define FROM 286
-#define WHERE 287
-#define AND 288
-#define SET 289
-#define ON 290
-#define LOAD 291
-#define DATA 292
-#define INFILE 293
-#define EQ 294
-#define LT 295
-#define GT 296
-#define LE 297
-#define GE 298
-#define NE 299
-#define NUMBER 300
-#define FLOAT 301
-#define ID 302
-#define PATH 303
-#define SSS 304
-#define DATE 305
-#define STAR 306
-#define STRING_V 307
+#define UNIQUE 271
+#define LBRACE 272
+#define RBRACE 273
+#define COMMA 274
+#define TRX_BEGIN 275
+#define TRX_COMMIT 276
+#define TRX_ROLLBACK 277
+#define INT_T 278
+#define STRING_T 279
+#define FLOAT_T 280
+#define DATE_T 281
+#define HELP 282
+#define EXIT 283
+#define DOT 284
+#define INTO 285
+#define VALUES 286
+#define FROM 287
+#define WHERE 288
+#define AND 289
+#define SET 290
+#define ON 291
+#define LOAD 292
+#define DATA 293
+#define INFILE 294
+#define EQ 295
+#define LT 296
+#define GT 297
+#define LE 298
+#define GE 299
+#define NE 300
+#define NUMBER 301
+#define FLOAT 302
+#define ID 303
+#define PATH 304
+#define SSS 305
+#define DATE 306
+#define STAR 307
+#define STRING_V 308
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 107 "yacc_sql.y"
+#line 108 "yacc_sql.y"
 
   struct _Attr *attr;
   struct _Condition *condition1;
@@ -168,7 +170,7 @@ union YYSTYPE
 	char *position;
   int date;
 
-#line 172 "yacc_sql.tab.h"
+#line 174 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

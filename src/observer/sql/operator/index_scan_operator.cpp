@@ -63,7 +63,6 @@ RC IndexScanOperator::next()
   if (rc != RC::SUCCESS) {
     return rc;
   }
-  // LOG_WARN("rid page num : %d ,slow num : %d", rid.page_num,rid.slot_num);
   return record_handler_->get_record(&rid, &current_record_);
 }
 

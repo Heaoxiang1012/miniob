@@ -30,7 +30,6 @@ See the Mulan PSL v2 for more details. */
 #include "storage/index/bplus_tree_index.h"
 #include "storage/trx/trx.h"
 
-
 Table::~Table()
 {
   if (record_handler_ != nullptr) {
@@ -131,7 +130,7 @@ RC Table::drop(const char *path)
     index->drop();
   }
   indexes_.clear();
-
+  unique_index_field_name_.clear();
   // 1.删除 record_handler (其实第一步应该是删除index)
   rc = remove_record_handler();
   delete record_handler_;
@@ -425,6 +424,11 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out,int 
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[offset + i];
+    if(is_unique(value,field->name())){
+      LOG_ERROR("cant insert record because of %s field is unique index.",field->name());
+      return RC::GENERIC_ERROR;
+    }
+
     if (field->type() != value.type) {
       LOG_ERROR("Invalid value type. table name =%s, field name=%s, type=%d, but given=%d",
           table_meta_.name(),
@@ -500,6 +504,80 @@ RC Table::get_record_scanner(RecordFileScanner &scanner)
   return rc;
 }
 
+bool Table::is_unique(const Value &value,const char *field_name )
+{
+  const FieldMeta *target_field_meta = nullptr;
+  for(auto field_name_ : unique_index_field_name_){
+    if(field_name == field_name_){
+      target_field_meta = table_meta_.field(field_name);
+      break;
+    }
+  }
+  if(target_field_meta == nullptr){
+    return false;
+  }
+
+  //先用table search
+  RecordFileScanner record_scanner;
+  get_record_scanner(record_scanner);
+  
+  Record current_record;
+  RC rc = RC::SUCCESS;
+
+  int field_meta_offset = target_field_meta->offset();
+  int field_meta_length = target_field_meta->len();
+  AttrType field_meta_type  = target_field_meta->type();
+  
+  while (record_scanner.has_next()) {
+    //不断read记录出来，若相等，则flag = 0，则返回true；
+    //反之返回false，表示不是unique；
+    record_scanner.next(current_record);
+
+    int flag = 1;
+    char *compare_data = current_record.data() + field_meta_offset;
+    switch (field_meta_type){
+      case INTS: {
+        flag = compare_int((void*)compare_data, value.data);
+      } break;
+      case FLOATS:
+        flag = compare_float((void *)compare_data, value.data);
+        break;
+      case CHARS: {
+        int len2 = strlen((const char *)(value.data));
+        flag = compare_string((void *)compare_data, field_meta_length,
+                              value.data, len2);
+      } break;
+      case DATES: {
+        flag = compare_date((void *)compare_data,false,value.data,true); // TODO
+      } break;
+      default: {
+        LOG_WARN("unsupported type: %d", field_meta_type);
+      } break;
+    }
+    if (flag == 0) return true;
+  }
+  return false;
+  // Index *index_ = find_index_by_field(field_name);
+  //暂时先不用index_search
+  // IndexScanner *index_scanner = index_->create_scanner(); //TODO initialize
+  // index scanner ;
+
+  // if (nullptr == index_scanner) {
+  //   LOG_WARN("failed to create index scanner");
+  //   return RC::INTERNAL;
+  // }
+
+  // if (nullptr == record_handler_) {
+  //   LOG_WARN("invalid record handler");
+  //   index_scanner->destroy();
+  //   return RC::INTERNAL;
+  // }
+
+  // RID *rid;
+  // RC rc = RC::SUCCESS;
+  // while ((rc = index_scanner->next_entry(rid)) == RC::SUCCESS) {
+  // }
+}
 /**
  * 为了不把Record暴露出去，封装一下
  */
@@ -643,7 +721,7 @@ static RC insert_index_record_reader_adapter(Record *record, void *context)
   return inserter.insert_index(record);
 }
 
-RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_name)
+RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_name,bool unique)
 {
   if (common::is_blank(index_name) || common::is_blank(attribute_name)) {
     LOG_INFO("Invalid input arguments, table name is %s, index_name is blank or attribute_name is blank", name());
@@ -660,9 +738,14 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     LOG_INFO("Invalid input arguments, there is no field of %s in table:%s.", attribute_name, name());
     return RC::SCHEMA_FIELD_MISSING;
   }
-
+  
   IndexMeta new_index_meta;
   RC rc = new_index_meta.init(index_name, *field_meta);
+  
+  if(unique){
+    unique_index_field_name_.push_back(field_meta->name());
+  }
+
   if (rc != RC::SUCCESS) {
     LOG_INFO("Failed to init IndexMeta in table:%s, index_name:%s, field_name:%s",
              name(), index_name, attribute_name);
