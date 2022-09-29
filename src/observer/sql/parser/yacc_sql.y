@@ -75,6 +75,10 @@ ParserContext *get_context(yyscan_t scanner)
         DELETE
         UPDATE
         UNIQUE
+        MAX
+        MIN
+        COUNT
+        AVG
         LBRACE
         RBRACE
         COMMA
@@ -157,7 +161,52 @@ command:
 	| load_data
 	| help
 	| exit
+  | aggregate
     ;
+
+aggregate:
+    SELECT func_list FROM ID SEMICOLON {
+      
+      CONTEXT->ssql->flag = SCF_AGGREATE; //添加操作符
+      aggreates_append_relation(&CONTEXT->ssql->sstr.aggreation, $4); //添加表名
+
+      //临时变量清零
+    };
+
+func_list:
+    COUNT LBRACE aggregate_list RBRACE {
+      aggreates_append_func(&CONTEXT->ssql->sstr.aggreation,"COUNT");
+    }
+    | AVG LBRACE aggregate_list RBRACE other_func_list{
+      aggreates_append_func(&CONTEXT->ssql->sstr.aggreation,"AVG");
+    }
+    | MIN LBRACE aggregate_list RBRACE other_func_list {
+      aggreates_append_func(&CONTEXT->ssql->sstr.aggreation,"MIN");
+    }
+    | MAX LBRACE aggregate_list RBRACE other_func_list{
+      aggreates_append_func(&CONTEXT->ssql->sstr.aggreation,"MAX");
+    }
+    ;
+
+other_func_list :
+    | COMMA func_list {}
+    ;
+
+aggregate_list :
+  | STAR aggregate_attr_list{
+    aggreates_append_attribute(&CONTEXT->ssql->sstr.aggreation, "*");
+  }
+  | ID aggregate_attr_list{
+    aggreates_append_attribute(&CONTEXT->ssql->sstr.aggreation, $1);
+  }
+
+aggregate_attr_list :
+  | COMMA STAR {
+    aggreates_append_attribute(&CONTEXT->ssql->sstr.aggreation, "*");
+  }
+  | COMMA ID {
+    aggreates_append_attribute(&CONTEXT->ssql->sstr.aggreation, $2);
+  }
 
 exit:			
     EXIT SEMICOLON {

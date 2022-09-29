@@ -62,6 +62,7 @@ protected:
   RC do_insert(SQLStageEvent *sql_event);
   RC do_delete(SQLStageEvent *sql_event);
   RC do_update(SQLStageEvent *sql_event);
+  RC do_aggreate_func(SQLStageEvent *sql_event);
 
  protected:
  private:

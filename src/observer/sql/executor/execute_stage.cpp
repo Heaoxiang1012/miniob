@@ -40,6 +40,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/update_stmt.h"
 #include "sql/stmt/delete_stmt.h"
 #include "sql/stmt/insert_stmt.h"
+#include "sql/stmt/aggreate_stmt.h"
 #include "sql/stmt/filter_stmt.h"
 #include "storage/common/table.h"
 #include "storage/common/field.h"
@@ -162,6 +163,9 @@ void ExecuteStage::handle_request(common::StageEvent *event)
     } break;
     case StmtType::DELETE: {
       do_delete(sql_event);
+    } break;
+    case StmtType::AGGREATE:{
+      do_aggreate_func(sql_event);
     } break;
     }
   } else {
@@ -959,6 +963,113 @@ RC ExecuteStage::do_delete(SQLStageEvent *sql_event)
   } else {
     session_event->set_response("SUCCESS\n");
   }
+  return rc;
+}
+RC ExecuteStage::do_aggreate_func(SQLStageEvent *sql_event)
+{
+  Stmt *stmt = sql_event->stmt();
+  SessionEvent *session_event = sql_event->session_event();
+
+  if (stmt == nullptr) {
+    LOG_WARN("cannot find statement");
+    return RC::GENERIC_ERROR;
+  }
+
+  AggreateStmt *aggreate_stmt = (AggreateStmt *)stmt;
+  Table *table = aggreate_stmt->table();
+  
+  RC rc = RC::SUCCESS;
+  std::stringstream ss;
+
+  std::vector<std::string> funcs = aggreate_stmt->get_funcs();
+  std::vector<std::vector<const FieldMeta *>> attrs =
+      aggreate_stmt->get_attrs();
+
+  for (int i = 0; i < funcs.size(); ++i) {
+    std::string _output = funcs[i];
+    _output += "(";
+    if (attrs[i].size() != 1) _output += "*";
+    else _output += attrs[i][0]->name();
+    _output += ")";
+
+    if (i != funcs.size() - 1) _output += " | ";
+    ss << _output;
+  }
+  ss << '\n';
+
+  for(int i = 0 ; i < funcs.size() ; ++i) {
+    Operator *scan_oper = nullptr;
+    if (nullptr == scan_oper) {
+      scan_oper = new TableScanOperator(table);
+    }
+    DEFER([&] () {delete scan_oper;}); //callback function
+    ProjectOperator project_oper;
+    project_oper.add_child(scan_oper);
+
+    std::vector<const FieldMeta *> query_fields = attrs[i];
+
+    for(const FieldMeta *field: query_fields){
+      project_oper.add_projection(table, field);
+    }
+    
+    rc = project_oper.open();
+    if (rc != RC::SUCCESS) {
+      LOG_WARN("failed to open operator");
+      return rc;
+    }
+
+    std::vector<std::string> ans_string;
+    while ((rc = project_oper.next()) == RC::SUCCESS) {
+      // get current record
+      // write to response
+      Tuple *tuple = project_oper.current_tuple(); 
+      
+      if (nullptr == tuple) {
+        rc = RC::INTERNAL;
+        LOG_WARN("failed to get current record. rc=%s", strrc(rc));
+        break;
+      }
+
+      ans_string.push_back(tuple_to_string(*tuple));
+    }
+    if (rc != RC::RECORD_EOF) {
+      LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
+      project_oper.close();
+    } else {
+      rc = project_oper.close();
+    }
+
+    if(funcs[i] == "COUNT"){
+      ss << ans_string.size();
+    } else if (funcs[i] == "AVG") {
+      float ans = 0;
+      for(auto it : ans_string){
+        ans += std::atof(it.c_str());
+      }
+      ans /= ans_string.size();
+
+      ss << ans;
+    } else if (funcs[i] == "MIN") {
+      std::string ans = ans_string[0];
+      for(auto it : ans_string){
+        ans = std::min(ans, it);
+      }
+      ss << ans;
+    } else if (funcs[i] == "MAX") {
+      std::string ans = ans_string[0];
+      for(auto it : ans_string){
+        ans = std::max(ans, it);
+      }
+      ss << ans;
+    }
+
+    if(i != funcs.size() - 1){
+      ss << " | ";
+    }
+  }
+
+  ss << '\n';
+  session_event->set_response(ss.str());
   return rc;
 }
 

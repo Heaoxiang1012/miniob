@@ -69,6 +69,14 @@ typedef struct _Condition {
   Value right_value;   // right-hand side value if right_is_attr = FALSE
 } Condition;
 
+typedef struct {
+  char *relation;
+  size_t aggreation_num;
+  char *aggreations[MAX_NUM];
+  size_t attr_num; 
+  char* attributes[MAX_NUM];
+} Aggreates;
+
 // struct of select
 typedef struct {
   size_t attr_num;                // Length of attrs in Select clause
@@ -167,6 +175,7 @@ union Queries {
   DropIndex drop_index;
   DescTable desc_table;
   LoadData load_data;
+  Aggreates aggreation;
   char *errors;
 };
 
@@ -179,6 +188,7 @@ enum SqlCommandFlag {
   SCF_DELETE,
   SCF_CREATE_TABLE,
   SCF_DROP_TABLE,
+  SCF_AGGREATE,
   SCF_CREATE_INDEX,
   SCF_CREATE_UNIQUE_INDEX,
   SCF_DROP_INDEX,
@@ -219,6 +229,11 @@ void condition_destroy(Condition *condition);
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length);
 void attr_info_destroy(AttrInfo *attr_info);
+
+void aggreates_append_relation(Aggreates *aggreates, const char *relation_name);
+void aggreates_append_func(Aggreates *aggreates, const char *func_name);
+void aggreates_append_attribute(Aggreates *aggreates, const char *rel_attr);
+void aggreates_destroy(Aggreates *aggreates);
 
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr);

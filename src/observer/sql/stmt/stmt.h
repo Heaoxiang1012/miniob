@@ -25,6 +25,7 @@ enum class StmtType
   INSERT,
   UPDATE,
   DELETE,
+  AGGREATE,
   CREATE_TABLE,
   DROP_TABLE,
   CREATE_INDEX,

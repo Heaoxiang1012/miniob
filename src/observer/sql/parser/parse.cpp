@@ -113,6 +113,32 @@ void attr_info_destroy(AttrInfo *attr_info)
   attr_info->name = nullptr;
 }
 
+void aggreates_append_relation(Aggreates *aggreates ,const char *relation_name)
+{
+  aggreates->relation = strdup(relation_name);
+}
+void aggreates_append_attribute(Aggreates *aggreates,const char *rel_attr)
+{
+  aggreates->attributes[aggreates->attr_num++] = strdup(rel_attr);
+}
+void aggreates_append_func(Aggreates *aggreates,const char *func_name)
+{
+  aggreates->aggreations[aggreates->aggreation_num++] = strdup(func_name); //要记得释放内存
+}
+void aggreates_destroy(Aggreates *aggreates)
+{
+  for (size_t i = 0; i < aggreates->attr_num; i++) {
+    free(aggreates->attributes[i]);
+  }
+  aggreates->attr_num = 0;
+
+  for (size_t i = 0; i < aggreates->aggreation_num; i++) {
+    free(aggreates->aggreations[i]);
+    aggreates->aggreations[i] = NULL;
+  }
+  aggreates->aggreation_num = 0;
+  free(aggreates->relation);
+}
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr)
 {
@@ -354,6 +380,9 @@ void query_reset(Query *query)
     case SCF_UPDATE: {
       updates_destroy(&query->sstr.update);
     } break;
+    case SCF_AGGREATE:{
+      aggreates_destroy(&query->sstr.aggreation);
+    }
     case SCF_CREATE_TABLE: {
       create_table_destroy(&query->sstr.create_table);
     } break;

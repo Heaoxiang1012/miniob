@@ -18,6 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/stmt/delete_stmt.h"
 #include "sql/stmt/select_stmt.h"
 #include "sql/stmt/update_stmt.h"
+#include "sql/stmt/aggreate_stmt.h"
 
 RC Stmt::create_stmt(Db *db, const Query &query, Stmt *&stmt)
 {
@@ -36,10 +37,12 @@ RC Stmt::create_stmt(Db *db, const Query &query, Stmt *&stmt)
   case SCF_UPDATE: {
     return UpdateStmt::create(db, query.sstr.update, stmt);
   } break;
+  case SCF_AGGREATE:{
+    return AggreateStmt::create(db, query.sstr.aggreation, stmt);
+  } break;
   default: {
-      LOG_WARN("unknown query command");
-    }
-    break;
+    LOG_WARN("unknown query command");
+  } break;
   }
   return RC::UNIMPLENMENT;
 }
