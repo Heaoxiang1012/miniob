@@ -1051,16 +1051,48 @@ RC ExecuteStage::do_aggreate_func(SQLStageEvent *sql_event)
       ss << ans;
     } else if (funcs[i] == "MIN") {
       std::string ans = ans_string[0];
-      for(auto it : ans_string){
-        ans = std::min(ans, it);
+      AttrType attrtype = query_fields[0]->type();
+      
+      if(attrtype == AttrType::INTS || attrtype == AttrType::DATES){
+        int res = std::atoi(ans.c_str());
+        for (auto it : ans_string) {
+          res = std::min(res, std::atoi(it.c_str()));
+        }
+        ss << res;
+      } else if(attrtype == AttrType::FLOATS){
+        double res = std::atof(ans.c_str());
+        for (auto it : ans_string) {
+          res = std::min(res, std::atof(it.c_str()));
+        }
+        ss << res;
+      } else {
+        for(auto it : ans_string){
+          ans = std::min(ans, it);
+        }
+        ss << ans;
       }
-      ss << ans;
     } else if (funcs[i] == "MAX") {
       std::string ans = ans_string[0];
-      for(auto it : ans_string){
-        ans = std::max(ans, it);
+      AttrType attrtype = query_fields[0]->type();
+      
+      if(attrtype == AttrType::INTS || attrtype == AttrType::DATES){
+        int res = std::atoi(ans.c_str());
+        for (auto it : ans_string) {
+          res = std::max(res, std::atoi(it.c_str()));
+        }
+        ss << res;
+      } else if(attrtype == AttrType::FLOATS){
+        double res = std::atof(ans.c_str());
+        for (auto it : ans_string) {
+          res = std::max(res, std::atof(it.c_str()));
+        }
+        ss << res;
+      } else {
+        for(auto it : ans_string){
+          ans = std::max(ans, it);
+        }
+        ss << ans;
       }
-      ss << ans;
     }
 
     if(i != funcs.size() - 1){
