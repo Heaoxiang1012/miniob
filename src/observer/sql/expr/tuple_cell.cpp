@@ -64,6 +64,14 @@ void TupleCell::to_string(std::ostream &os) const
   case DATES: {
     os << date_to_string(*(int32_t*)data_);
   } break;
+  case TEXTS: {
+    for (int i = 0; i < length_; i++) {
+      if (data_[i] == '\0') {
+        break;
+      }
+      os << data_[i];
+    }
+  } break;
   default: {
     LOG_WARN("unsupported attr type: %d", attr_type_);
   } break;

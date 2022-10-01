@@ -775,6 +775,8 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     project_oper.add_child(&pred_oper);
     for (const Field &field : select_stmt->query_fields()) {  //所有要查询的字段属性都通过add_projection放到project_oper里
       project_oper.add_projection(field.table(), field.meta());
+      // LOG_WARN("offset : %d,len :%d,name : %s", field.meta()->offset(),
+      //          field.meta()->len(), field.meta()->name());
     }
     rc = project_oper.open();
     if (rc != RC::SUCCESS) {
@@ -782,7 +784,6 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
       return rc;
     }
 
-    
     print_tuple_header(ss, project_oper);
 
     while ((rc = project_oper.next()) == RC::SUCCESS) {

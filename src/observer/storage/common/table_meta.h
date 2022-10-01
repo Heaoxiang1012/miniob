@@ -32,7 +32,7 @@ public:
 
   void swap(TableMeta &other) noexcept;
 
-  RC init(const char *name, int field_num, const AttrInfo attributes[]);
+  RC init(const char *name, int field_num, const AttrInfo attributes[],const char *base_dir);
 
   RC destroy();
 
@@ -73,7 +73,6 @@ protected:
   std::vector<IndexMeta> indexes_;
 
   int record_size_ = 0;
-
   //@@@ TODO why used static variable?
   static std::vector<FieldMeta> sys_fields_;
 };

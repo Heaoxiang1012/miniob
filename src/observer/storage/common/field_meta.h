@@ -30,7 +30,7 @@ public:
   FieldMeta();
   ~FieldMeta() = default;
 
-  RC init(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible);
+  RC init(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible,std::string text_file = "nullptr");
 public:
   const char *name() const;
   
@@ -38,8 +38,8 @@ public:
   int offset() const;
   int len() const;
   bool visible() const;
-  
-public:
+  std::string text() const;
+ public:
   void desc(std::ostream &os) const;
 
 public:
@@ -52,5 +52,8 @@ protected:
   int attr_offset_;
   int attr_len_;
   bool visible_;
+
+  std::string text_;
+  //int use_page = 0;
 };
 #endif  // __OBSERVER_STORAGE_COMMON_FIELD_META_H__

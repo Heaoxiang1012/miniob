@@ -77,33 +77,34 @@ extern int yydebug;
     STRING_T = 283,
     FLOAT_T = 284,
     DATE_T = 285,
-    HELP = 286,
-    EXIT = 287,
-    DOT = 288,
-    INTO = 289,
-    VALUES = 290,
-    FROM = 291,
-    WHERE = 292,
-    AND = 293,
-    SET = 294,
-    ON = 295,
-    LOAD = 296,
-    DATA = 297,
-    INFILE = 298,
-    EQ = 299,
-    LT = 300,
-    GT = 301,
-    LE = 302,
-    GE = 303,
-    NE = 304,
-    NUMBER = 305,
-    FLOAT = 306,
-    ID = 307,
-    PATH = 308,
-    SSS = 309,
-    DATE = 310,
-    STAR = 311,
-    STRING_V = 312
+    TEXT_T = 286,
+    HELP = 287,
+    EXIT = 288,
+    DOT = 289,
+    INTO = 290,
+    VALUES = 291,
+    FROM = 292,
+    WHERE = 293,
+    AND = 294,
+    SET = 295,
+    ON = 296,
+    LOAD = 297,
+    DATA = 298,
+    INFILE = 299,
+    EQ = 300,
+    LT = 301,
+    GT = 302,
+    LE = 303,
+    GE = 304,
+    NE = 305,
+    NUMBER = 306,
+    FLOAT = 307,
+    ID = 308,
+    PATH = 309,
+    SSS = 310,
+    DATE = 311,
+    STAR = 312,
+    STRING_V = 313
   };
 #endif
 /* Tokens.  */
@@ -135,39 +136,40 @@ extern int yydebug;
 #define STRING_T 283
 #define FLOAT_T 284
 #define DATE_T 285
-#define HELP 286
-#define EXIT 287
-#define DOT 288
-#define INTO 289
-#define VALUES 290
-#define FROM 291
-#define WHERE 292
-#define AND 293
-#define SET 294
-#define ON 295
-#define LOAD 296
-#define DATA 297
-#define INFILE 298
-#define EQ 299
-#define LT 300
-#define GT 301
-#define LE 302
-#define GE 303
-#define NE 304
-#define NUMBER 305
-#define FLOAT 306
-#define ID 307
-#define PATH 308
-#define SSS 309
-#define DATE 310
-#define STAR 311
-#define STRING_V 312
+#define TEXT_T 286
+#define HELP 287
+#define EXIT 288
+#define DOT 289
+#define INTO 290
+#define VALUES 291
+#define FROM 292
+#define WHERE 293
+#define AND 294
+#define SET 295
+#define ON 296
+#define LOAD 297
+#define DATA 298
+#define INFILE 299
+#define EQ 300
+#define LT 301
+#define GT 302
+#define LE 303
+#define GE 304
+#define NE 305
+#define NUMBER 306
+#define FLOAT 307
+#define ID 308
+#define PATH 309
+#define SSS 310
+#define DATE 311
+#define STAR 312
+#define STRING_V 313
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 112 "yacc_sql.y"
+#line 113 "yacc_sql.y"
 
   struct _Attr *attr;
   struct _Condition *condition1;
@@ -178,7 +180,7 @@ union YYSTYPE
 	char *position;
   int date;
 
-#line 182 "yacc_sql.tab.h"
+#line 184 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

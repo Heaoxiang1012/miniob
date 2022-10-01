@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "json/json.h"
 #include "common/log/log.h"
 #include "storage/trx/trx.h"
+#include "storage/common/meta_util.h"
 
 static const Json::StaticString FIELD_TABLE_NAME("table_name");
 static const Json::StaticString FIELD_FIELDS("fields");
@@ -51,7 +52,7 @@ RC TableMeta::init_sys_fields()
   sys_fields_.push_back(field_meta);
   return rc;
 }
-RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
+RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[],const char *base_dir)
 {
   if (common::is_blank(name)) {
     LOG_ERROR("Name cannot be empty");
@@ -82,13 +83,23 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
 
   for (int i = 0; i < field_num; i++) {
     const AttrInfo &attr_info = attributes[i];
-    rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset,attr_info.length, true);
+    if(attr_info.type == AttrType::TEXTS){
+      rc = fields_[i + sys_fields_.size()].init(
+        attr_info.name, attr_info.type, field_offset, attr_info.length, true,table_data_text_file(base_dir,name,attr_info.name));
+    } else {
+      rc = fields_[i + sys_fields_.size()].init(
+        attr_info.name, attr_info.type, field_offset, attr_info.length, true);
+    }
+    
     // rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset,attr_info.length, true);
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to init field meta. table name=%s, field name: %s", name, attr_info.name);
       return rc;
     }
-    field_offset += attr_info.length;
+    if(attr_info.type == AttrType::TEXTS){
+      field_offset += 4;//用来写页号
+    } else
+      field_offset += attr_info.length;
   }
   
   record_size_ = field_offset;
@@ -277,11 +288,6 @@ int TableMeta::deserialize(std::istream &is)
   std::vector<FieldMeta> fields(field_num);
   for (int i = 0; i < field_num; i++) {
     FieldMeta &field = fields[i];
-    // std::string ta = "date_table";
-    // if (table_name == ta) {
-    //   LOG_INFO("debug:: %s : %d",field.name(),field.type());
-    // }
-
     const Json::Value &field_value = fields_value[i];
     rc = FieldMeta::from_json(field_value, field);
     if (rc != RC::SUCCESS) {
@@ -319,8 +325,8 @@ int TableMeta::deserialize(std::istream &is)
   }
 
   return (int)(is.tellg() - old_pos);
-}
 
+}
 int TableMeta::get_serial_size() const
 {
   return -1;

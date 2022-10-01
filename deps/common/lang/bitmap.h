@@ -32,8 +32,9 @@ public:
    */
   int next_unsetted_bit(int start);
   int next_setted_bit(int start);
+  char *get_bitmap() { return bitmap_; }
 
-private:
+ private:
   char *bitmap_;
   int size_;
 };

@@ -20,6 +20,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/defs.h"
 #include "storage/common/table.h"
 #include "storage/common/table_meta.h"
+#include "common/lang/bitmap.h"
 #include "common/log/log.h"
 #include "common/lang/string.h"
 #include "storage/default/disk_buffer_pool.h"
@@ -83,7 +84,7 @@ RC Table::create(
   close(fd);
 
   // 创建文件
-  if ((rc = table_meta_.init(name, attribute_count, attributes)) != RC::SUCCESS) {
+  if ((rc = table_meta_.init(name, attribute_count, attributes,base_dir)) != RC::SUCCESS) {
     LOG_ERROR("Failed to init table meta. name:%s, ret:%d", name, rc);
     return rc;  // delete table file
   }
@@ -343,7 +344,20 @@ RC Table::update_a_col_record(char *record_data, const char* attribute_name,cons
   // }
 
   const FieldMeta *field = table_meta_.field(attribute_name);
-  memcpy(record_data + field->offset(), value.data, field->len());
+  if(field->type() == AttrType::TEXTS){
+    int page_id = *(int *)(record_data + field->offset());
+    std::fstream f(table_data_text_file(base_dir_.c_str(), name(), field->name()),
+                   std::ios::binary | std::ios::in | std::ios::out);
+    int page_size = 4096;
+    
+    std::string new_data = (char *)(value.data);
+    new_data += '0';
+    f.seekp(page_id * page_size,std::ios::beg);
+    f.write(new_data.c_str(), new_data.size());
+    f.close();
+  } else {
+    memcpy(record_data + field->offset(), value.data, field->len());
+  }
 
   return RC::SUCCESS;
 }
@@ -356,8 +370,6 @@ RC Table::update_record(Trx *trx,const char *attribute_name,const Value *values,
 RC Table::update_record(Trx *trx,Record *record, const char* attribute_name, const Value value,const int value_num)
 {
   RC rc = RC::SUCCESS;
-  // 更新record 
-  // 修改旧data_  TODO
   
   rc = update_a_col_record(record->data(),attribute_name,value_num,value); // TODO
   
@@ -429,7 +441,7 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out,int 
       return RC::GENERIC_ERROR;
     }
 
-    if (field->type() != value.type) {
+    if (field->type() != value.type && field->type() != AttrType::TEXTS) {
       LOG_ERROR("Invalid value type. table name =%s, field name=%s, type=%d, but given=%d",
           table_meta_.name(),
           field->name(),
@@ -447,6 +459,47 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out,int 
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[offset + i];
     size_t copy_len = field->len();
+    if(field->type() == AttrType::TEXTS){
+      int page_id = -1; 
+      int page_size = 4096;
+      common::Bitmap _bitmap;
+      std::ifstream text_handle(
+          table_data_text_file(base_dir_.c_str(), name(), field->name()),
+          std::ios::binary);
+      char *_data = new char[page_size];
+      text_handle.read(_data, page_size);
+      text_handle.close();
+
+      _bitmap.init(_data, page_size * 8);
+      page_id = _bitmap.next_unsetted_bit(1);
+      if(page_id == -1){
+        LOG_WARN("dont has enough page to store text attr.");
+        return RC::GENERIC_ERROR;
+      }
+      _bitmap.set_bit(page_id);
+
+      LOG_WARN("unset page id : %d", page_id); //TODO BUG
+
+      std::fstream text_writer(
+          table_data_text_file(base_dir_.c_str(), name(), field->name()),
+          std::ios::binary|std::ios::out|std::ios::in);
+
+      char *write_value = (char *)value.data;
+      int write_size = std::min((int)strlen(write_value),page_size);
+      text_writer.seekp(page_id * page_size, std::ios::beg);
+      text_writer.write(write_value, write_size);
+      std::string padding(page_size - write_size,'0');
+      text_writer.write(padding.c_str(), page_size - write_size);
+      
+      //写回bitmap
+      text_writer.seekp(0, std::ios::beg);
+      text_writer.write(_bitmap.get_bitmap(), page_size);
+      copy_len = 4;
+      memcpy(record + field->offset(), (void*)(&page_id), copy_len);
+
+      text_writer.close();
+      continue;
+    }
     if (field->type() == CHARS) {
       const size_t data_len = strlen((const char *)value.data);
       if (copy_len > data_len) {

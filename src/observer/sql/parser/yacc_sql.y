@@ -89,6 +89,7 @@ ParserContext *get_context(yyscan_t scanner)
         STRING_T
         FLOAT_T
         DATE_T
+        TEXT_T
         HELP
         EXIT
         DOT //QUOTE
@@ -323,14 +324,15 @@ attr_def:
 		}
     ;
 number:
-		NUMBER {$$ = $1;}
-		;
+  NUMBER {$$ = $1;}
+  ;
 type:
 	INT_T { $$=INTS; }
-       | STRING_T { $$=CHARS; }
-       | FLOAT_T { $$=FLOATS; }
-       | DATE_T { $$=DATES;}
-       ;
+  | STRING_T { $$=CHARS; }
+  | FLOAT_T { $$=FLOATS; }
+  | DATE_T { $$=DATES;}
+  | TEXT_T { $$=TEXTS;}
+  ;
 ID_get:
 	ID 
 	{
@@ -380,6 +382,7 @@ value:
     |DATE {
       value_init_date(&CONTEXT->values[CONTEXT->value_length++], $1);
     }
+    
     ;
     
 delete:		/*  delete 语句的语法解析树*/

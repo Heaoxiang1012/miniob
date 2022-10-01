@@ -40,7 +40,6 @@ Bitmap::Bitmap() : bitmap_(nullptr), size_(0)
 {}
 Bitmap::Bitmap(char *bitmap, int size) : bitmap_(bitmap), size_(size)
 {}
-
 void Bitmap::init(char *bitmap, int size)
 {
   bitmap_ = bitmap;

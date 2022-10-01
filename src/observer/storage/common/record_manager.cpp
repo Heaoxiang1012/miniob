@@ -289,8 +289,8 @@ RC RecordFileHandler::insert_record(const char *data, int record_size, RID *rid)
   // 找到没有填满的页面
 
   BufferPoolIterator bp_iterator;
-  bp_iterator.init(*disk_buffer_pool_);
-  RecordPageHandler record_page_handler;
+  bp_iterator.init(*disk_buffer_pool_); 
+  RecordPageHandler record_page_handler; //RecordPage 管理页内的Record
   bool page_found = false;
   PageNum current_page_num = 0;
   while (bp_iterator.has_next()) {

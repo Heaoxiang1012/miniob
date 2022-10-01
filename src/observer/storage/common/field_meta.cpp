@@ -11,11 +11,11 @@ See the Mulan PSL v2 for more details. */
 //
 // Created by Meiyi & Wangyunlai on 2021/5/12.
 //
+#include <fstream>
 
 #include <common/lang/string.h>
 #include "storage/common/field_meta.h"
 #include "common/log/log.h"
-
 #include "json/json.h"
 
 const static Json::StaticString FIELD_NAME("name");
@@ -23,12 +23,13 @@ const static Json::StaticString FIELD_TYPE("type");
 const static Json::StaticString FIELD_OFFSET("offset");
 const static Json::StaticString FIELD_LEN("len");
 const static Json::StaticString FIELD_VISIBLE("visible");
+const static Json::StaticString FIELD_TEXT("text");
 
-const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats","dates"};
+const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats","dates","texts"};
 
 const char *attr_type_to_string(AttrType type)
 {
-  if (type >= UNDEFINED && type <= DATES) {
+  if (type >= UNDEFINED && type <= TEXTS) {
     return ATTR_TYPE_NAME[type];
   }
   return "unknown";
@@ -47,7 +48,7 @@ AttrType attr_type_from_string(const char *s)
 FieldMeta::FieldMeta() : attr_type_(AttrType::UNDEFINED), attr_offset_(-1),attr_len_(0), visible_(false)
 {}
 
-RC FieldMeta::init(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible)
+RC FieldMeta::init(const char *name, AttrType attr_type, int attr_offset, int attr_len, bool visible,std::string text_file)
 {
   if (common::is_blank(name)) {
     LOG_WARN("Name cannot be empty");
@@ -61,12 +62,22 @@ RC FieldMeta::init(const char *name, AttrType attr_type, int attr_offset, int at
   }
 
   name_ = name;
-  attr_type_ = attr_type;
+  if (attr_type == AttrType::TEXTS) {
+    text_ = text_file;
+    std::ofstream f(text_.c_str(), std::ios::binary);
+    int page_size = 4096;
+    char *_data = new char[page_size];
+    memset(_data, 0, page_size);
+    f.write(_data, page_size);
+    f.close();
+  } 
+    
   // LOG_INFO("xxx attr_type=%d", attr_type);
-  attr_len_ = attr_len;
+  attr_type_ = attr_type;
+  attr_len_ = attr_len; //在页中的长度
   attr_offset_ = attr_offset;
   visible_ = visible;
-
+  
   LOG_INFO("Init a field with name=%s", name);
   return RC::SUCCESS;
 }
@@ -96,7 +107,10 @@ bool FieldMeta::visible() const
 {
   return visible_;
 }
-
+std::string FieldMeta::text() const
+{
+  return text_;
+}
 void FieldMeta::desc(std::ostream &os) const
 {
   os << "field name=" << name_ << ", type=" << attr_type_to_string(attr_type_) << ", len=" << attr_len_
@@ -110,6 +124,7 @@ void FieldMeta::to_json(Json::Value &json_value) const
   json_value[FIELD_OFFSET] = attr_offset_;
   json_value[FIELD_LEN] = attr_len_;
   json_value[FIELD_VISIBLE] = visible_;
+  json_value[FIELD_TEXT] = text_;
 }
 
 RC FieldMeta::from_json(const Json::Value &json_value, FieldMeta &field)
@@ -124,6 +139,7 @@ RC FieldMeta::from_json(const Json::Value &json_value, FieldMeta &field)
   const Json::Value &offset_value = json_value[FIELD_OFFSET];
   const Json::Value &len_value = json_value[FIELD_LEN];
   const Json::Value &visible_value = json_value[FIELD_VISIBLE];
+  const Json::Value &text_value = json_value[FIELD_TEXT];
 
   if (!name_value.isString()) {
     LOG_ERROR("Field name is not a string. json value=%s", name_value.toStyledString().c_str());
@@ -146,6 +162,9 @@ RC FieldMeta::from_json(const Json::Value &json_value, FieldMeta &field)
     LOG_ERROR("Visible field is not a bool value. json value=%s", visible_value.toStyledString().c_str());
     return RC::GENERIC_ERROR;
   }
+  if(!text_value.isString()){
+    LOG_ERROR("Text field is not a string value. json value=%s", text_value.toStyledString().c_str());
+  }
 
   AttrType type = attr_type_from_string(type_value.asCString());
   if (UNDEFINED == type) {
@@ -157,5 +176,6 @@ RC FieldMeta::from_json(const Json::Value &json_value, FieldMeta &field)
   int offset = offset_value.asInt();
   int len = len_value.asInt();
   bool visible = visible_value.asBool();
-  return field.init(name, type, offset,len, visible);
+  std::string text = text_value.asString();
+  return field.init(name, type, offset, len, visible,text);
 }

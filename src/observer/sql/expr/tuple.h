@@ -115,8 +115,31 @@ public:
     const FieldMeta *field_meta = field_expr->field().meta();
     cell.set_type(field_meta->type());
     // LOG_WARN("[debug : in here ], type: %d ", field_meta->type());
-    cell.set_data(this->record_->data() + field_meta->offset());
-    cell.set_length(field_meta->len());
+    if(field_meta->type() == AttrType::TEXTS){
+      int page_id = *(int *)(this->record_->data() + field_meta->offset());
+      LOG_WARN("select page id : %d", page_id);
+      std::ifstream text_reader(field_meta->text(),std::ios::binary);
+      int page_size = 4096;
+      char *temp_data = new char[page_size];
+      text_reader.seekg(page_id * page_size,std::ios::beg);
+      text_reader.read(temp_data,page_size);
+      
+      int len = 0;
+      while (len < page_size && temp_data[len] != '\0' && temp_data[len] != '0') len++;
+
+      char *data = new char[len + 1];
+      memcpy(data, temp_data, len);
+      LOG_WARN("get data : %s,len : %d", data, len);
+      cell.set_data(data);
+      cell.set_length(len);
+      text_reader.close();
+      delete[] temp_data;
+    } else {
+      cell.set_data(this->record_->data() + field_meta->offset());
+      cell.set_length(field_meta->len());
+    }
+
+    
     return RC::SUCCESS;
   }
 
