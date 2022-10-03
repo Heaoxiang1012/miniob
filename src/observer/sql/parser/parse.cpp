@@ -157,7 +157,11 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
   }
   selects->condition_num = condition_num;
 }
-
+void selects_append_order_attribute(Selects *selects, RelAttr *rel_attr,const char *order_type)
+{
+  selects->order_types[selects->order_num] = strdup(order_type);
+  selects->order_attributes[selects->order_num++] = *rel_attr;
+}
 void selects_destroy(Selects *selects)
 {
   for (size_t i = 0; i < selects->attr_num; i++) {
@@ -175,6 +179,13 @@ void selects_destroy(Selects *selects)
     condition_destroy(&selects->conditions[i]);
   }
   selects->condition_num = 0;
+
+  for (size_t i = 0; i < selects->order_num;++i) {
+    relation_attr_destroy(&selects->order_attributes[i]);
+    free(selects->order_types[i]);
+    selects->order_types[i] = NULL;
+  }
+  selects->order_num = 0;
 }
 
 void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num)

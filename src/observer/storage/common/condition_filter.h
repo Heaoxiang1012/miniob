@@ -24,6 +24,8 @@ See the Mulan PSL v2 for more details. */
 class Record;
 class Table;
 
+void read_value(std::string &get,const std::string &str,int table_offset,int attr_offset);
+
 struct ConDesc {
   bool is_attr;     // 是否属性，false 表示是值
   int attr_length;  // 如果是属性，表示属性值长度

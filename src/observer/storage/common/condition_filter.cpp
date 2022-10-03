@@ -173,7 +173,7 @@ bool DefaultConditionFilter::filter(const std::string &rec) const
     case CHARS: {  // 字符串都是定长的，直接比较
       // 按照C字符串风格来定
       cmp_result = strcmp(left_value.c_str(), right_value.c_str());
-      LOG_WARN("cmp_results : %d", cmp_result);
+      // LOG_WARN("cmp_results : %d", cmp_result);
     } break;
     case INTS: {
       // 没有考虑大小端问题
@@ -187,7 +187,7 @@ bool DefaultConditionFilter::filter(const std::string &rec) const
       else
         right = *(int *)right_.value;
       
-      LOG_WARN("left : %d , right : %d", left, right);
+      // LOG_WARN("left : %d , right : %d", left, right);
       cmp_result = (double)left - right;
     } break;
     case FLOATS: {

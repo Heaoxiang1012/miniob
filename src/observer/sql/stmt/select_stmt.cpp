@@ -144,6 +144,29 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
     default_table = tables[0];
   }
 
+  std::vector<std::string> order_types;
+  std::vector<Field> order_attr;
+  for (int i = select_sql.order_num - 1; i >= 0; --i) {
+    const RelAttr &relation_attr = select_sql.order_attributes[i];
+    const char *table_name = relation_attr.relation_name;
+    const char *field_name = relation_attr.attribute_name;
+    std::string one_order_type = select_sql.order_types[i];
+
+    Table *table = nullptr;
+    if(table_map.size() == 1){
+      table = (*table_map.begin()).second;
+    } else {
+      auto it = table_map.find(table_name);
+      table = it->second;
+    }
+
+    // LOG_WARN("table name : %s,field name : %s , order type : %s",table->name(),field_name,one_order_type.c_str());
+
+    const FieldMeta *field_meta = table->table_meta().field(field_name);
+    order_types.push_back(one_order_type);
+    order_attr.push_back(Field(table, field_meta));
+  }
+
   // create filter statement in `where` statement
   FilterStmt *filter_stmt = nullptr;
   RC rc = FilterStmt::create(db, default_table, &table_map,
@@ -160,6 +183,8 @@ RC SelectStmt::create(Db *db, const Selects &select_sql, Stmt *&stmt)
   select_stmt->tables_.swap(tables);
   select_stmt->query_fields_.swap(query_fields);
   select_stmt->filter_stmt_ = filter_stmt;
+  select_stmt->order_fields_.swap(order_attr);
+  select_stmt->order_types_.swap(order_types);
   stmt = select_stmt;
   return RC::SUCCESS;
 }
