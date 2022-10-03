@@ -623,36 +623,34 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     }
   }
 
-    //对ans_records 进行排序
-    //构造排序函数
-  std::vector<int> table_indics;
-  std::vector<int> attr_indics;
+  // std::vector<int> table_indics;
+  // std::vector<int> attr_indics;
 
-  for (int i = 0; i < select_stmt->order_fields().size(); ++i) {
-    Field order_field = select_stmt->order_fields()[i];
-    const Table *table = order_field.table();
-    // 排序需要得到元素在第几张表的第几个元素
-    // 这里用的是字符串中第几个出现的|来表示第几张表，用第几个空格来表示第几个元素
-    int table_index = 0;
+  // for (int i = 0; i < select_stmt->order_fields().size(); ++i) {
+  //   Field order_field = select_stmt->order_fields()[i];
+  //   const Table *table = order_field.table();
+  //   // 排序需要得到元素在第几张表的第几个元素
+  //   // 这里用的是字符串中第几个出现的|来表示第几张表，用第几个空格来表示第几个元素
+  //   int table_index = 0;
 
-    while (table_index < select_stmt->tables().size() &&
-           strcmp(order_field.table_name(),
-                  (select_stmt->tables()[table_index])->name()) != 0)
-      table_index++;
+  //   while (table_index < select_stmt->tables().size() &&
+  //          strcmp(order_field.table_name(),
+  //                 (select_stmt->tables()[table_index])->name()) != 0)
+  //     table_index++;
 
-    auto table_metas = (select_stmt->tables()[table_index])->table_meta();
-    int attr_index = table_metas.sys_field_num();
-    while (attr_index < table_metas.field_num() &&
-           strcmp(order_field.field_name(),
-                  (table_metas.field(attr_index))->name()) != 0)
-      attr_index++;
+  //   auto table_metas = (select_stmt->tables()[table_index])->table_meta();
+  //   int attr_index = table_metas.sys_field_num();
+  //   while (attr_index < table_metas.field_num() &&
+  //          strcmp(order_field.field_name(),
+  //                 (table_metas.field(attr_index))->name()) != 0)
+  //     attr_index++;
   
-    table_index = select_stmt->tables().size() - table_index - 1;
-    attr_index -= table_metas.sys_field_num();
-    table_indics.push_back(table_index);
-    attr_indics.push_back(attr_index);
-  }
-  auto order_types = select_stmt->order_types();
+  //   table_index = select_stmt->tables().size() - table_index - 1;
+  //   attr_index -= table_metas.sys_field_num();
+  //   table_indics.push_back(table_index);
+  //   attr_indics.push_back(attr_index);
+  // }
+  // auto order_types = select_stmt->order_types();
   // for (int i = 0; i < table_indics.size(); ++i){
   //   int table_index = table_indics[i];
   //   int attr_index = attr_indics[i];
