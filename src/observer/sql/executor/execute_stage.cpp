@@ -662,30 +662,30 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   // }
 
   // std::sort(ans_records.begin(),ans_records.end());
-  std::sort(ans_records.begin(), ans_records.end(), [table_indics,attr_indics,order_types](const std::string &s1,const std::string &s2){
-    for (int i = 0; i < table_indics.size(); ++i) {
-      int table_index = table_indics[i];
-      int attr_index = attr_indics[i];
-      std::string order_type = order_types[i];
+  // std::sort(ans_records.begin(), ans_records.end(), [table_indics,attr_indics,order_types](const std::string &s1,const std::string &s2){
+  //   for (int i = 0; i < table_indics.size(); ++i) {
+  //     int table_index = table_indics[i];
+  //     int attr_index = attr_indics[i];
+  //     std::string order_type = order_types[i];
 
-      std::string attr1 = "";
-      read_value(attr1, s1, table_index, attr_index);
+  //     std::string attr1 = "";
+  //     read_value(attr1, s1, table_index, attr_index);
 
-      std::string attr2 = "";
-      read_value(attr2, s2, table_index, attr_index);
+  //     std::string attr2 = "";
+  //     read_value(attr2, s2, table_index, attr_index);
 
-      // LOG_WARN("table index : %d,attr index : %d", table_index, attr_index);
-      // LOG_WARN("attr1 : %s,attr2 :%s", attr1.c_str(), attr2.c_str());
-      if (attr1 == attr2){
-        continue;
-      }
-      else {
-        if (order_type == "ASC") return attr1 < attr2;
-        else if(order_type == "DESC") return attr1 > attr2;
-      }
-    }
-    return true;
-  });
+  //     // LOG_WARN("table index : %d,attr index : %d", table_index, attr_index);
+  //     // LOG_WARN("attr1 : %s,attr2 :%s", attr1.c_str(), attr2.c_str());
+  //     if (attr1 == attr2){
+  //       continue;
+  //     }
+  //     else {
+  //       if (order_type == "ASC") return attr1 < attr2;
+  //       else if(order_type == "DESC") return attr1 > attr2;
+  //     }
+  //   }
+  //   return true;
+  // });
 
   // for (int i = 0; i < ans_records.size();++i) {
   //   LOG_WARN("after order : %s", ans_records[i].c_str());
