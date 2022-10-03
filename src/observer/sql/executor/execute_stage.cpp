@@ -749,8 +749,8 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   // for (int i = 0; i < ans_records.size();++i) {
   //   LOG_WARN("after order : %s", ans_records[i].c_str());
   // }
-  
-  if (select_stmt->tables().size() != 1){
+
+  if (select_stmt->tables().size() != 1) {
     std::vector<int> table_indics;
     std::vector<int> attr_indics;
 
@@ -780,25 +780,26 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     }
     auto order_types = select_stmt->order_types();
 
-    if(table_indics.size() != 0){
+    if (table_indics.size() != 0) {
       std::sort(ans_records.begin(), ans_records.end(), [table_indics,attr_indics,order_types](const std::string &s1,const std::string &s2){
+        
+        assert(table_indics.size() == attr_indics.size());
+        assert(table_indics.size() == order_types.size());
+
         for (int i = 0; i < table_indics.size(); ++i) {
+          
           int table_index = table_indics[i];
           int attr_index = attr_indics[i];
           std::string order_type = order_types[i];
 
           std::string attr1 = "";
-          read_value(attr1, s1, table_index, attr_index);
 
+          read_value(attr1, s1, table_index, attr_index);
           std::string attr2 = "";
           read_value(attr2, s2, table_index, attr_index);
-
-          // LOG_WARN("table index : %d,attr index : %d", table_index, attr_index);
-          // LOG_WARN("attr1 : %s,attr2 :%s", attr1.c_str(), attr2.c_str());
           if (attr1 == attr2){
             continue;
-          }
-          else {
+          } else {
             if (order_type == "ASC") return attr1 < attr2;
             else if(order_type == "DESC") return attr1 > attr2;
           }
@@ -806,7 +807,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
         return true;
       });
     }
-    
+
     std::vector<std::pair<int, int>> indice;
     for (int i = 0; i < select_stmt->query_fields().size(); ++i) {
       const Field &field = select_stmt->query_fields()[i];
@@ -849,11 +850,11 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
         {
           if(item[index] == '.'){
             index++;
-            while (item[index] == '0') index++;
+            while (index < item.size() && item[index] == '0') index++;
           }
           else {
-            output_record += item[index];
-            index++;
+          output_record += item[index];
+          index++;
           }
         }
 

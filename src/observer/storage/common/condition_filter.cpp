@@ -34,11 +34,8 @@ void read_value(std::string &get,const std::string &str,int table_offset,int att
     if (str[index] == ' ') read_attr_count++;
     index++;
   }
-
-  while (str[index] != ' ' && str[index] != '|') 
+  while (index < str.size() && str[index] != ' ' && str[index] != '|') 
     get += str[index++];
-
-
 }
 
 ConditionFilter::~ConditionFilter()
