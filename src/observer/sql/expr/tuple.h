@@ -117,7 +117,7 @@ public:
     // LOG_WARN("[debug : in here ], type: %d ", field_meta->type());
     if(field_meta->type() == AttrType::TEXTS){
       int page_id = *(int *)(this->record_->data() + field_meta->offset());
-      LOG_WARN("select page id : %d", page_id);
+      // LOG_WARN("select page id : %d", page_id);
       std::ifstream text_reader(field_meta->text(),std::ios::binary);
       int page_size = 4096;
       char *temp_data = new char[page_size];
@@ -135,6 +135,11 @@ public:
       text_reader.close();
       delete[] temp_data;
     } else {
+      // if(field_meta->type() == AttrType::FLOATS){
+      //   float x = *(float *)(this->record_->data() + field_meta->offset());
+      //   x *= 1000;
+        
+      // }
       cell.set_data(this->record_->data() + field_meta->offset());
       cell.set_length(field_meta->len());
     }

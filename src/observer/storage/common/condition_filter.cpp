@@ -38,6 +38,7 @@ void read_value(std::string &get,const std::string &str,int table_offset,int att
   while (str[index] != ' ' && str[index] != '|') 
     get += str[index++];
 
+
 }
 
 ConditionFilter::~ConditionFilter()

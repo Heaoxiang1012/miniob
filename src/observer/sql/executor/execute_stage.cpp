@@ -612,10 +612,69 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
         break;
       }
 
-      tuple_to_string(ss, *tuple);
-      ss << std::endl;
-      // ans_records.push_back(tuple_to_string(*tuple));
+      if(select_stmt->order_fields().size() == 0){
+        tuple_to_string(ss, *tuple);
+        ss << std::endl;
+      } else {
+        ans_records.push_back(tuple_to_string(*tuple));
+      }
     }
+    if(select_stmt->order_fields().size() != 0){
+      std::vector<int> attr_indics;
+      for (int i = 0; i < select_stmt->order_fields().size(); ++i) {
+        Field order_field = select_stmt->order_fields()[i];
+        auto table_metas = (select_stmt->tables()[0])->table_meta();
+        int attr_index = table_metas.sys_field_num();
+        
+        while (attr_index < table_metas.field_num() &&
+              strcmp(order_field.field_name(),
+                      (table_metas.field(attr_index))->name()) != 0)
+          attr_index++;
+    
+        attr_index -= table_metas.sys_field_num();
+        attr_indics.push_back(attr_index);
+      }
+
+      auto order_types = select_stmt->order_types();
+      std::sort(ans_records.begin(), ans_records.end(), [attr_indics,order_types](const std::string &s1,const std::string &s2){
+          for (int i = 0; i < attr_indics.size(); ++i) {
+            int attr_index = attr_indics[i];
+            std::string order_type = order_types[i];
+
+            std::string attr1 = "";
+            read_value(attr1, s1, 0, attr_index);
+
+            std::string attr2 = "";
+            read_value(attr2, s2, 0, attr_index);
+
+            if (attr1 == attr2){
+              continue;
+            }
+            else {
+              if (order_type == "ASC") return attr1 < attr2;
+              else if(order_type == "DESC") return attr1 > attr2;
+            }
+          }
+          return false;
+        });
+
+      for(auto item : ans_records){
+        for(auto it : item){
+          if (it == '.' || it == '0') {
+            continue;
+          }
+          if (it != ' ') {
+            ss << it;
+          } else {
+            ss << " | ";
+          }
+        }
+        ss << '\n';
+      }
+    }
+    // for (int i = 0; i < ans_records.size(); ++i) {
+    //   LOG_WARN(".. %s", ans_records[i].c_str());
+    // }
 
     if (rc != RC::RECORD_EOF) {
       LOG_WARN("something wrong while iterate operator. rc=%s", strrc(rc));
@@ -788,8 +847,14 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
 
         while(index < item.size() && item[index] != ' ' && item[index] != '|')
         {
-          output_record += item[index];
-          index++;
+          if(item[index] == '.'){
+            index++;
+            while (item[index] == '0') index++;
+          }
+          else {
+            output_record += item[index];
+            index++;
+          }
         }
 
         if(end_indice != indice.size() - 1) 
