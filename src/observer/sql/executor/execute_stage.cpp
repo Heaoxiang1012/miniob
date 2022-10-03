@@ -613,6 +613,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
       }
 
       tuple_to_string(ss, *tuple);
+      ss << std::endl;
       // ans_records.push_back(tuple_to_string(*tuple));
     }
 
@@ -691,6 +692,62 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   // }
   
   if (select_stmt->tables().size() != 1){
+    std::vector<int> table_indics;
+    std::vector<int> attr_indics;
+
+    for (int i = 0; i < select_stmt->order_fields().size(); ++i) {
+      Field order_field = select_stmt->order_fields()[i];
+      const Table *table = order_field.table();
+      // 排序需要得到元素在第几张表的第几个元素
+      // 这里用的是字符串中第几个出现的|来表示第几张表，用第几个空格来表示第几个元素
+      int table_index = 0;
+
+      while (table_index < select_stmt->tables().size() &&
+            strcmp(order_field.table_name(),
+                    (select_stmt->tables()[table_index])->name()) != 0)
+        table_index++;
+
+      auto table_metas = (select_stmt->tables()[table_index])->table_meta();
+      int attr_index = table_metas.sys_field_num();
+      while (attr_index < table_metas.field_num() &&
+            strcmp(order_field.field_name(),
+                    (table_metas.field(attr_index))->name()) != 0)
+        attr_index++;
+    
+      table_index = select_stmt->tables().size() - table_index - 1;
+      attr_index -= table_metas.sys_field_num();
+      table_indics.push_back(table_index);
+      attr_indics.push_back(attr_index);
+    }
+    auto order_types = select_stmt->order_types();
+
+    if(table_indics.size() != 0){
+      std::sort(ans_records.begin(), ans_records.end(), [table_indics,attr_indics,order_types](const std::string &s1,const std::string &s2){
+        for (int i = 0; i < table_indics.size(); ++i) {
+          int table_index = table_indics[i];
+          int attr_index = attr_indics[i];
+          std::string order_type = order_types[i];
+
+          std::string attr1 = "";
+          read_value(attr1, s1, table_index, attr_index);
+
+          std::string attr2 = "";
+          read_value(attr2, s2, table_index, attr_index);
+
+          // LOG_WARN("table index : %d,attr index : %d", table_index, attr_index);
+          // LOG_WARN("attr1 : %s,attr2 :%s", attr1.c_str(), attr2.c_str());
+          if (attr1 == attr2){
+            continue;
+          }
+          else {
+            if (order_type == "ASC") return attr1 < attr2;
+            else if(order_type == "DESC") return attr1 > attr2;
+          }
+        }
+        return true;
+      });
+    }
+    
     std::vector<std::pair<int, int>> indice;
     for (int i = 0; i < select_stmt->query_fields().size(); ++i) {
       const Field &field = select_stmt->query_fields()[i];
