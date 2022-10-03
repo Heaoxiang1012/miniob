@@ -612,7 +612,8 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
         break;
       }
 
-      ans_records.push_back(tuple_to_string(*tuple));
+      tuple_to_string(ss, *tuple);
+      // ans_records.push_back(tuple_to_string(*tuple));
     }
 
     if (rc != RC::RECORD_EOF) {
@@ -688,61 +689,63 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   // for (int i = 0; i < ans_records.size();++i) {
   //   LOG_WARN("after order : %s", ans_records[i].c_str());
   // }
+  
+  if (select_stmt->tables().size() != 1){
+    std::vector<std::pair<int, int>> indice;
+    for (int i = 0; i < select_stmt->query_fields().size(); ++i) {
+      const Field &field = select_stmt->query_fields()[i];
+      std::vector<int> _index;
 
-  std::vector<std::pair<int, int>> indice;
-  for (int i = 0; i < select_stmt->query_fields().size(); ++i) {
-    const Field &field = select_stmt->query_fields()[i];
-    std::vector<int> _index;
+      int table_index = 0;
+      while(table_index < select_stmt->tables().size() && strcmp(field.table_name(),(select_stmt->tables()[table_index])->name()) != 0)
+          table_index++;
+        
+      auto table_metas = (select_stmt->tables()[table_index])->table_meta();
+      int attr_index = table_metas.sys_field_num();
+      while (attr_index < table_metas.field_num() && strcmp(field.field_name(), (table_metas.field(attr_index))->name()) != 0) 
+        attr_index++;
 
-    int table_index = 0;
-    while(table_index < select_stmt->tables().size() && strcmp(field.table_name(),(select_stmt->tables()[table_index])->name()) != 0)
-        table_index++;
-      
-    auto table_metas = (select_stmt->tables()[table_index])->table_meta();
-    int attr_index = table_metas.sys_field_num();
-    while (attr_index < table_metas.field_num() && strcmp(field.field_name(), (table_metas.field(attr_index))->name()) != 0) 
-      attr_index++;
+      table_index = select_stmt->tables().size() - table_index - 1;
+      attr_index = attr_index - table_metas.sys_field_num(); // 减去sys field num 才是真实的 第几个 空格前的数据（字符串）
 
-    table_index = select_stmt->tables().size() - table_index - 1;
-    attr_index = attr_index - table_metas.sys_field_num(); // 减去sys field num 才是真实的 第几个 空格前的数据（字符串）
-
-    indice.push_back(std::make_pair(table_index,attr_index));
-  }
-
-  for (auto item : ans_records) {
-    std::string output_record = "";
-    int end_indice = 0;
-    for (auto it : indice) {
-      int index = 0;
-      int table_count = 0;
-      while(index < item.size() && table_count != it.first)
-      {
-        if (item[index] == '|') table_count++;
-        index++;
-      }
-      int attr_cout = 0;
-      while(index < item.size() && attr_cout != it.second)
-      {
-        if (item[index] == ' ') attr_cout++;
-        index++;
-      }
-
-      while(index < item.size() && item[index] != ' ' && item[index] != '|')
-      {
-        output_record += item[index];
-        index++;
-      }
-
-      if(end_indice != indice.size() - 1) 
-        output_record += " | ";
-      end_indice++;
+      indice.push_back(std::make_pair(table_index,attr_index));
     }
-    output_records.push_back(output_record);
-  }
 
-  for (auto item : output_records) {
-    ss << item; 
-    ss << '\n';
+    for (auto item : ans_records) {
+      std::string output_record = "";
+      int end_indice = 0;
+      for (auto it : indice) {
+        int index = 0;
+        int table_count = 0;
+        while(index < item.size() && table_count != it.first)
+        {
+          if (item[index] == '|') table_count++;
+          index++;
+        }
+        int attr_cout = 0;
+        while(index < item.size() && attr_cout != it.second)
+        {
+          if (item[index] == ' ') attr_cout++;
+          index++;
+        }
+
+        while(index < item.size() && item[index] != ' ' && item[index] != '|')
+        {
+          output_record += item[index];
+          index++;
+        }
+
+        if(end_indice != indice.size() - 1) 
+          output_record += " | ";
+        end_indice++;
+      }
+      output_records.push_back(output_record);
+    }
+
+    for (auto item : output_records) {
+      ss << item; 
+      ss << '\n';
+    }
   }
 
   session_event->set_response(ss.str());
