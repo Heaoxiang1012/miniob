@@ -19,7 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include <stdint.h>
 #include <stdbool.h>
 
-#define MAX_NUM 20
+#define MAX_NUM 100
 #define MAX_REL_NAME 20
 #define MAX_ATTR_NAME 20
 #define MAX_ERROR_MESSAGE 20
