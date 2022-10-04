@@ -100,14 +100,16 @@ extern int yydebug;
     NE = 306,
     ORDER = 307,
     BY = 308,
-    NUMBER = 309,
-    FLOAT = 310,
-    ID = 311,
-    PATH = 312,
-    SSS = 313,
-    DATE = 314,
-    STAR = 315,
-    STRING_V = 316
+    INNER = 309,
+    JOIN = 310,
+    NUMBER = 311,
+    FLOAT = 312,
+    ID = 313,
+    PATH = 314,
+    SSS = 315,
+    DATE = 316,
+    STAR = 317,
+    STRING_V = 318
   };
 #endif
 /* Tokens.  */
@@ -162,20 +164,22 @@ extern int yydebug;
 #define NE 306
 #define ORDER 307
 #define BY 308
-#define NUMBER 309
-#define FLOAT 310
-#define ID 311
-#define PATH 312
-#define SSS 313
-#define DATE 314
-#define STAR 315
-#define STRING_V 316
+#define INNER 309
+#define JOIN 310
+#define NUMBER 311
+#define FLOAT 312
+#define ID 313
+#define PATH 314
+#define SSS 315
+#define DATE 316
+#define STAR 317
+#define STRING_V 318
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 116 "yacc_sql.y"
+#line 119 "yacc_sql.y"
 
   struct _Attr *attr;
   struct _Condition *condition1;
@@ -186,7 +190,7 @@ union YYSTYPE
 	char *position;
   int date;
 
-#line 190 "yacc_sql.tab.h"
+#line 194 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;

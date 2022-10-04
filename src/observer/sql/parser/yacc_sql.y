@@ -112,6 +112,9 @@ ParserContext *get_context(yyscan_t scanner)
         NE
         ORDER
         BY
+        INNER
+        JOIN
+        
 
 %union {
   struct _Attr *attr;
@@ -409,7 +412,7 @@ update:			/*  update 语句的语法解析树*/
 		}
     ;
 select:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list where order SEMICOLON
+    SELECT select_attr FROM ID join_list rel_list where order SEMICOLON
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
@@ -460,6 +463,13 @@ attr_list:
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
   	  }
   	;
+
+join_list:
+  | INNER JOIN ID ON condition condition_list join_list{
+    selects_append_relation(&CONTEXT->ssql->sstr.selection, $3);
+  }
+  ;
+
 
 rel_list:
     /* empty */
