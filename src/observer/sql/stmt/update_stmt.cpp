@@ -64,6 +64,9 @@ RC UpdateStmt::create(Db *db, const Updates &update_sql, Stmt *&stmt)
     if(field_type == AttrType::TEXTS){
       continue;
     }
+    if(field_type == AttrType::DATES){
+      continue;
+    }
     if (field_type != value_type) { // TODO try to convert the value type to field type
       LOG_WARN("field type mismatch. table=%s, field=%s, field type=%d, value_type=%d", 
                table_name, field_meta->name(), field_type, value_type);

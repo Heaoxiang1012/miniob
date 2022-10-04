@@ -30,6 +30,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/index/index.h"
 #include "storage/index/bplus_tree_index.h"
 #include "storage/trx/trx.h"
+#include "util/date.h"
 
 Table::~Table()
 {
@@ -356,7 +357,16 @@ RC Table::update_a_col_record(char *record_data, const char* attribute_name,cons
     f.write(new_data.c_str(), new_data.size());
     f.close();
   } else {
-    memcpy(record_data + field->offset(), value.data, field->len());
+    
+    if(field->type() == AttrType::DATES){
+      const char *date = (const char *)value.data;
+      int32_t int_date = 0;
+      string_to_date(date, int_date);
+      memcpy(record_data + field->offset(), (void *)(&int_date), field->len());
+    }
+    else {
+      memcpy(record_data + field->offset(), value.data, field->len());
+    }
   }
 
   return RC::SUCCESS;

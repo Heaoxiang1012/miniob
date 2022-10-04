@@ -934,7 +934,23 @@ RC ExecuteStage::do_create_index(SQLStageEvent *sql_event)
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
 
-  RC rc = table->create_index(nullptr, create_index.index_name, create_index.attribute_name,create_index.unique);
+  auto field_metas = table->table_meta().field_metas();
+
+  for (int i = 0; i < create_index.attr_num ; ++i) {
+    int j = 0;
+    for (; j < field_metas->size(); ++j) {
+      if(strcmp(create_index.attribute_name[i],(*field_metas)[j].name())==0){
+        break;
+      }
+    }
+    if(j == field_metas->size()){
+      LOG_WARN("field miss , field name : %s", create_index.attribute_name[i]);
+      session_event->set_response("FAILURE\n");
+      return RC::SCHEMA_FIELD_NOT_EXIST;
+    }
+  }
+
+  RC rc = table->create_index(nullptr, create_index.index_name, create_index.attribute_name[create_index.attr_num-1],create_index.unique);
   sql_event->session_event()->set_response(rc == RC::SUCCESS ? "SUCCESS\n" : "FAILURE\n");
   return rc;
 }

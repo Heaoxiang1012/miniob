@@ -37,7 +37,7 @@ inline RC string_to_date(const char *str,int32_t &date)
 {
   int year = 0, month = 0, day = 0;
   int ret = sscanf(str, "%d-%d-%d", &year, &month, &day);
-  LOG_WARN("date : %d ,year: %d , month : %d , day : %d",date,year,month,day);
+  // LOG_WARN("date : %d ,year: %d , month : %d , day : %d",date,year,month,day);
   if(ret!=3){
     return RC::INVALID_ARGUMENT;
   }
